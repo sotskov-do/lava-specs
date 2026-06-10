@@ -90,7 +90,7 @@ Rules — apply exactly:
   ```
   So: add `<WS_URL>` (or any `wss://` node URL) to every block. If the spec has subscriptions and you were given NO ws/wss URL, do not boot a doomed config — STOP and return `SMOKE: BOOT_FAILED` noting that a ws/wss upstream is required for this chain, so the orchestrator can ask the user for one. (Check with: `jq -e '[.proposal.specs[].api_collections[].apis[]?.category.subscription] | any' <chain>.json` → `true` means subscriptions are present.)
 - **Multi-interface chains** (`<EXTRA_INTERFACES>` non-empty): add one more `endpoints[]` entry per extra interface on the next free port (`3361`, `3362`, …, same `chain-id`, the extra `api-interface`) AND a matching set of `direct-rpc[]` blocks for that interface's upstreams. See `config/smartrouter_examples/smartrouter_lava.yml` (rest + grpc + tendermintrpc) for the multi-interface shape.
-- Do NOT add `add_on`/extension fields here — those live in the SPEC file (`collection_data.add_on`), not the router config.
+- `addons:` on a `node-urls` entry tells the router that upstream serves an addon/extension (`archive`, `debug`, `trace`, …) and arms the matching startup verifications. Do NOT guess them here — leave them out of the initial config; Step 1c probes each upstream and adds only the addons it actually supports. (The spec-side `add_on` field still lives in `collection_data`, not in this config.)
 
 After writing, confirm it parses as YAML and dump it:
 
@@ -98,6 +98,40 @@ After writing, confirm it parses as YAML and dump it:
 cat /tmp/sr_<chain>.yml
 python3 -c 'import yaml; yaml.safe_load(open("/tmp/sr_<chain>.yml"))' && echo "YAML OK"
 ```
+
+## Step 1c — Addon & extension capability matrix
+
+Every addon and extension the spec declares must be either tested or explicitly reported as untestable. Build the matrix BEFORE booting.
+
+**1c-i. Inventory.** Collect every distinct addon and extension name from the candidate spec (and its imported parents in `$SPECS_DIR`, since verifications inherit):
+
+```bash
+# addons: non-empty collection_data.add_on values
+jq -r '[.. | objects | .add_on? // empty] | map(select(. != "")) | unique[]' <chain>.json
+# extensions: extension fields on verification values + any extensions arrays
+jq -r '[.. | objects | .extension? // empty] | map(select(. != null and . != "")) | unique[]' <chain>.json
+```
+
+If both lists are empty → record `ADDONS: none declared` and skip to Step 2.
+
+**1c-ii. Per-upstream capability probe (direct to the node URL, NOT the router — the router isn't up yet).** For each `(addon_or_extension, upstream)` pair:
+
+- If the spec has a verification gated on it (a `verifications[]` entry whose `values[]` contains that `extension`/addon): issue that verification's `function_template` directly to the upstream, walk `result_parsing.parser_arg`, and compare against the value's `expected_value` (e.g. `archive` → earliest block must be `0x0`) or sanity-check the type when there is no `expected_value`.
+- Otherwise (addon with no verification): call the FIRST method of that addon's collection with the simplest valid params; `-32601` → unsupported, any `result`/`-32602` → supported.
+
+Record per pair: `SUPPORTED` | `UNSUPPORTED (error/code)` | `INCONCLUSIVE (timeout)`.
+
+**1c-iii. Update the config.** For every upstream, add the addons/extensions it supports to its `node-urls` entries in `/tmp/sr_<chain>.yml`:
+
+```yaml
+    node-urls:
+      - url: "<NODE_URL_1>"
+        addons: [archive, debug]   # only what THIS upstream passed in 1c-ii
+```
+
+Do NOT add an addon the upstream failed — its startup verification (severity `Fail`) would exclude that provider from serving everything. An addon supported by ZERO upstreams is `NOT_TESTABLE` — leave it out of the config and carry it to the coverage table with the per-upstream probe evidence.
+
+Re-validate the YAML after editing (same `python3 -c` check as Step 1b).
 
 ## Step 2 — Boot the router container
 
@@ -128,7 +162,7 @@ timeout 120 bash -c '
          -d "{\"jsonrpc\":\"2.0\",\"method\":\"\",\"params\":[],\"id\":1}"; then
       echo READY; break
     fi
-    if '"$DOCKER"' logs sr_<chain> 2>&1 | grep -qiE "panic|fatal|failed to (load|expand|resolve) spec|verification failed|failed verification|cannot serve endpoint|no matching spec"; then
+    if '"$DOCKER"' logs sr_<chain> 2>&1 | grep -qiE "panic|fatal|failed to (load|expand|resolve) spec|all static providers failed verification|cannot serve endpoint|no matching spec"; then
       echo FATAL; break
     fi
     sleep 2
@@ -141,7 +175,58 @@ $DOCKER logs --tail 60 sr_<chain> 2>&1
 
 For non-jsonrpc interfaces (`rest`/`grpc`/`tendermintrpc`) the readiness probe differs — for `rest`/`tendermintrpc` a `GET http://localhost:3360/<a known path>` returning any HTTP status means the listener is up; for `grpc` a TCP connect (`bash -c '</dev/tcp/localhost/3360'`) is sufficient. Use whichever matches `<INTERFACE>`.
 
-If the logs show `panic`, `fatal`, `failed to load/expand/resolve spec`, `failed verification`, `cannot serve endpoint`, or `no matching spec` before the listener answers, STOP. Capture the full log (`$DOCKER logs sr_<chain>`), go to Step 6 (teardown), and return `SMOKE: BOOT_FAILED` with the excerpt (and, if it is the missing-ws case, say so explicitly). Do NOT skip to Step 4.
+If the logs show `panic`, `fatal`, `failed to load/expand/resolve spec`, `all static providers failed verification`, `cannot serve endpoint`, or `no matching spec` before the listener answers, STOP. Capture the full log (`$DOCKER logs sr_<chain>`), go to Step 6 (teardown), and return `SMOKE: BOOT_FAILED` with the excerpt (and, if it is the missing-ws case, say so explicitly). Do NOT skip to Step 4.
+
+Deliberately NOT a fail-fast trigger: per-provider lines like `failed verification on provider startup` or `ATTENTION: some static providers failed verification and were excluded`. The router still boots and serves when at least one provider passes — those partial failures are classified in Step 3.5 (c) instead of aborting the run here.
+
+## Step 3.5 — Parse-directive & verification runtime check (metrics + log signatures)
+
+Once booted, the router's chain tracker continuously *executes* the spec's parse directives against the real upstreams: `GET_BLOCKNUM` via `FetchLatestBlockNum` and `GET_BLOCK_BY_NUM` via `FetchBlockHashByNum`. This is the authoritative test of the directives — stronger than Phase 6's offline curl+jq approximation. Run it BEFORE the first probe so the log window is purely tracker traffic.
+
+**a. Let the tracker complete a few fetch cycles, then read the metrics:**
+
+```bash
+sleep 30
+curl -s http://localhost:7779/metrics | grep -E '^lava_(rpc_endpoint_(latest_block|fetch_latest_(fails|success)|fetch_block_(fails|success))|rpcsmartrouter_latest_block)'
+```
+
+Classify:
+- `lava_rpcsmartrouter_latest_block` > 0 → **PARSE_BLOCKNUM: OK** (the router learned the chain height through this spec's `GET_BLOCKNUM` directive — a positive signal, not just absence of errors).
+- `lava_rpcsmartrouter_latest_block` == 0 (or the metric is absent) after the sleep → **PARSE_BLOCKNUM: FAIL**. The `GET_BLOCKNUM` directive (template, `parser_func`, `parser_arg`, or `encoding`) is likely wrong. Attach the log-signature excerpt from (b).
+- `lava_rpc_endpoint_fetch_block_success` > 0 → **PARSE_BLOCK_BY_NUM: OK**.
+- `lava_rpc_endpoint_fetch_block_fails` > 0 AND `..._success` == 0 → **PARSE_BLOCK_BY_NUM: FAIL** (hash extraction broken — check `parser_arg` path and `encoding`).
+- Both block counters 0 → **PARSE_BLOCK_BY_NUM: NOT_EXERCISED** (tracker didn't fetch hashes yet; not a failure).
+- A few `fetch_latest_fails` alongside a healthy `latest_block` is transient endpoint noise, not a directive defect — the metrics rule above decides, the logs explain.
+
+**b. Grep the boot-window log for parse-failure signatures.** These come from `endpoint_chain_fetcher.go` and `parser.go` and most are **DEBUG level**, so the Step 4.5 warn/error scan never sees them (this is why the router runs with `--log-level debug`):
+
+```bash
+PARSE_SIG='failed to parse response|failed formatResponseForParsing|failed ParseBlockHashFromReplyAndDecode|failed CraftChainMessage|Failed parsing default value|blockParsing - |expected parsed hashes length|tried decoding a hex response|failed to parse generic parser path|failed to unmarshal result'
+$DOCKER logs sr_<chain> 2>&1 | grep -E "$PARSE_SIG" | head -20
+```
+
+Interpretation: `blockParsing - rpcInput is error` means the upstream returned an RPC error (endpoint issue, not directive defect); the other signatures point at the directive itself. Use the metrics verdict from (a) as the gate; use these lines as the diagnosis to report.
+
+**c. Scan the boot window for verification outcomes.** Every spec verification (`chain-id`, `pruning`, etc.) executes per provider at startup. `pruning` is how `GET_EARLIEST_BLOCK` gets exercised — the chain tracker never calls it — and a verification that fails on *some* providers does NOT fail the boot; the router just excludes them and serves with the rest, so without this scan the defect passes silently:
+
+```bash
+# Positive signal: one success line per (verification, provider) that ran
+$DOCKER logs sr_<chain> 2>&1 | grep -F '[+] verified successfully' \
+  | grep -oE '"verification":"[a-z0-9_-]+"' | sort | uniq -c
+
+# Failures + exclusions
+$DOCKER logs sr_<chain> 2>&1 | grep -E '\[-\] verify|failed verification on provider startup|invalid Verification on provider startup|some static providers failed verification|Bad verification definition' | head -20
+```
+
+Classify each verification name that appears in the spec (`jq -r '.proposal.specs[].api_collections[]?.verifications[]?.name' <chain>.json | sort -u`):
+
+- Succeeds on every provider → **OK**.
+- Fails on EVERY provider (but the router still boots because another collection/interface passed) → **VERIFY: FAIL** — the directive or `expected_value` is wrong (e.g. a broken `GET_EARLIEST_BLOCK` template/`parser_arg`, or a wrong chain-id `expected_value`). Spec defect.
+- Fails on SOME providers → **VERIFY: PARTIAL** — usually an upstream capability issue (e.g. a pruned node failing `pruning`'s `latest_distance`), not a spec defect. Record which upstream was excluded; remaining probes only exercise the survivors.
+- `Bad verification definition` → **VERIFY: FAIL** — the verification references a `function_tag` that has no matching entry in `parse_directives`. Always a spec defect.
+- Appears in neither success nor failure lines → **NOT_EXERCISED**. After Step 1c this should only happen when no upstream supports the gating addon/extension (i.e. the pair is `NOT_TESTABLE`) — cross-check against the Step 1c matrix; if a supporting upstream IS configured and the verification still never ran, flag it as a finding.
+
+If **PARSE_BLOCKNUM: FAIL** → this is a spec defect of the highest order (the router cannot track the chain). Record it prominently; still continue to Step 4 so the report is complete, but the overall run must surface `PARSE: FAIL` to the orchestrator. A **VERIFY: FAIL** likewise must surface to the orchestrator (see the return format).
 
 ## Step 4 — Method-probe loop
 
@@ -168,6 +253,18 @@ curl -s -m 10 -X POST http://localhost:3360 \
   -d '{"jsonrpc":"2.0","method":"<method>","params":[],"id":1}'
 ```
 
+**Addon & extension probes** (skip pairs marked `NOT_TESTABLE` in Step 1c — record them as such, do not probe):
+- Methods in an addon collection (`collection_data.add_on` non-empty) are probed like any other method — the router routes them to the upstreams configured with that addon in Step 1c. If EVERY addon method fails with "api not supported"/no-provider errors despite a supporting upstream, that is a spec/routing defect → the addon is `TESTED_FAIL`.
+- For each extension (e.g. `archive`): send one representative call through the router with the extension header, e.g.:
+
+  ```bash
+  curl -s -m 10 -X POST http://localhost:3360 \
+    -H "content-type: application/json" -H "lava-extension: archive" \
+    -d '<a historical-block call, e.g. eth_getBalance at an early block>'
+  ```
+
+  PASS = valid `result`; "no chain proxy supporting requested extensions" or no-provider error despite a supporting upstream = `TESTED_FAIL`.
+
 Response classification:
 - Response with `result` field (any value, including empty) → **PASS** (method exists and responded).
 - Response with `error.code == -32601` → **FAIL** (method does not exist on chain / not routed).
@@ -187,7 +284,10 @@ The router runs with `--log-format json`, so each line is a JSON object with a `
 #   self signed certificate / x509     — public-endpoint TLS quirks
 #   OTel / :4318 / metrics              — no local OTel collector
 #   chain tracker / ChainTracker / UNKNOWN_BLOCK / DB Not Found / failed fetching data
-#                                       — chaintracker probing archive-depth blocks (transient)
+#                                       — chaintracker probing archive-depth blocks (transient).
+#                                         Safe to allow-list HERE because directive-level parse
+#                                         failures are caught separately by Step 3.5 (metrics +
+#                                         debug-level signatures), which this filter cannot mask.
 #   WebSocket SendRequest not implemented
 #                                       — a wss upstream that only does subscriptions, not
 #                                         request/response GET_BLOCKNUM; the router retries on
@@ -230,6 +330,29 @@ Router config: /tmp/sr_<chain>.yml
 Spec variant: <INDEX> (<INTERFACE>)
 Upstreams probed: <URL_1>, <URL_2>, <URL_3>
 
+## Parse-directive & verification runtime check (Step 3.5)
+
+| Check | Verdict | Evidence |
+|---|---|---|
+| GET_BLOCKNUM (router latest_block) | <OK/FAIL> | lava_rpcsmartrouter_latest_block=<value> |
+| GET_BLOCK_BY_NUM (fetch_block counters) | <OK/FAIL/NOT_EXERCISED> | success=<n> fails=<n> |
+| Parse-signature log lines | <none / excerpt> | <up to 5 lines> |
+
+| Verification | Verdict | Providers OK/failed | Notes |
+|---|---|---|---|
+| <name, one row per spec verification> | <OK/FAIL/PARTIAL/NOT_EXERCISED> | <n>/<n> | <excluded upstream / failure excerpt> |
+
+## Addon & extension coverage (Step 1c + probes)
+
+One row per addon/extension declared in the spec. Classifications:
+**TESTED_OK** — ≥1 upstream supports it, boot verification passed, router probe passed.
+**TESTED_FAIL** — a supporting upstream exists but the boot verification or the router probe failed (spec/routing defect).
+**NOT_TESTABLE** — no provided upstream supports it (include the per-upstream probe evidence so a reviewer can supply a better node).
+
+| Name | Type | Upstreams supporting | Boot verification | Router probe | Classification |
+|---|---|---|---|---|---|
+| <archive/debug/trace/...> | <addon/extension> | <which of 1-3, or none> | <OK/FAIL/n-a> | <PASS/FAIL/—> | <TESTED_OK/TESTED_FAIL/NOT_TESTABLE> |
+
 | Method | Classification | Upstream notes | Notes |
 |---|---|---|---|
 | <method> | <PASS/FAIL/SKIP/WARN/TIMEOUT> | <code(s)> | <one-line note> |
@@ -257,9 +380,12 @@ Repeat Steps 1–6 for each `(spec_variant, api_interface)` pair if more than on
 Return a short summary:
 
 1. The path to `docs/<chain>/METHOD_PROBE_REPORT.md`.
-2. Counts: `PASS=<n> FAIL=<n> SKIP=<n> WARN=<n> TIMEOUT=<n> LOG_WARN=<n>` (`LOG_WARN` = non-benign log-scan lines from Step 4.5).
-3. The names of any FAIL/TIMEOUT methods (one per line), plus any method downgraded to WARN by the log scan, so the orchestrator can decide whether to fix the spec before Phase 9.
-4. Teardown status (container removed / leftover container).
+2. `PARSE: OK | FAIL | PARTIAL` — the Step 3.5 (a)+(b) verdict (`FAIL` if PARSE_BLOCKNUM failed; `PARTIAL` if only PARSE_BLOCK_BY_NUM failed). On FAIL/PARTIAL include the metric values and up to 5 parse-signature log lines.
+3. `VERIFY: OK | FAIL | PARTIAL` — the Step 3.5 (c) verdict (`FAIL` if any verification failed on every provider or is badly defined; `PARTIAL` if providers were excluded). On FAIL/PARTIAL name the verification(s) and include the failure excerpt.
+4. `ADDONS: <n> tested-ok / <n> failed / <n> not-testable` (or `none declared`) — plus the full coverage table inline (it is small): every declared addon/extension with its classification, and for `NOT_TESTABLE` the per-upstream evidence ("nodes don't support it").
+5. Counts: `PASS=<n> FAIL=<n> SKIP=<n> WARN=<n> TIMEOUT=<n> LOG_WARN=<n>` (`LOG_WARN` = non-benign log-scan lines from Step 4.5).
+6. The names of any FAIL/TIMEOUT methods (one per line), plus any method downgraded to WARN by the log scan, so the orchestrator can decide whether to fix the spec before Phase 9.
+7. Teardown status (container removed / leftover container).
 
 If the router could not boot, return `SMOKE: BOOT_FAILED` plus the relevant `$DOCKER logs` excerpt instead.
 

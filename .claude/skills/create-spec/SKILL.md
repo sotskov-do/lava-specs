@@ -448,7 +448,11 @@ Agent(description: "Boot smart-router + probe methods for <chain>",
       prompt: <smart-router-tester.md with placeholders substituted>)
 ```
 
-When the subagent returns, it reports a short summary (counts including `LOG_WARN` + FAIL/TIMEOUT method names + any methods downgraded to WARN by the probe-window log scan + teardown status) and the path to `docs/<chain>/METHOD_PROBE_REPORT.md`. Read the report from disk if you need detail — do not ask the subagent to echo it back. Carry the log-scan WARNs into the Phase 9 reviewers and the Phase 10 fix list, the same as FAIL methods.
+When the subagent returns, it reports a short summary (`PARSE:` and `VERIFY:` verdicts from the Step 3.5 runtime check, counts including `LOG_WARN`, FAIL/TIMEOUT method names, any methods downgraded to WARN by the probe-window log scan, teardown status) and the path to `docs/<chain>/METHOD_PROBE_REPORT.md`. Read the report from disk if you need detail — do not ask the subagent to echo it back. Carry the log-scan WARNs into the Phase 9 reviewers and the Phase 10 fix list, the same as FAIL methods.
+
+**Record the `PARSE:` and `VERIFY:` verdicts** — they go into the PR body (CI) and the Phase 12 checklist. A `PARSE: FAIL` or `VERIFY: FAIL` is a spec defect: carry the failing directive/verification (with the agent's diagnosis excerpt) into the Phase 9 reviewers and the Phase 10 fix list as a CRITICAL item — Phase 10b re-runs the same check and reports the post-fix verdict. `PARTIAL` verdicts are upstream-capability findings: record which upstream was excluded, but do not treat them as spec defects.
+
+**Record the `ADDONS:` coverage summary and table** — every addon/extension the spec declares comes back classified `TESTED_OK`, `TESTED_FAIL`, or `NOT_TESTABLE` (no provided node supports it). `TESTED_FAIL` is a spec/routing defect: carry it into the Phase 9 reviewers and Phase 10 fix list like a FAIL method. `NOT_TESTABLE` is not a defect — surface it in the PR body and Phase 12 checklist with the per-upstream evidence so a reviewer can decide whether to re-test with a more capable node.
 
 If the subagent reports `SMOKE: BOOT_FAILED` or otherwise indicates the router could not boot, present the error to the user and STOP. Do not proceed to Phase 9.
 
@@ -557,7 +561,7 @@ Agent(description: "Smoke re-test fixed spec for <chain>",
 ```
 
 When the subagent returns, expect one of:
-- `SMOKE: OK` → proceed to Phase 11.
+- `SMOKE: OK` → record the post-fix `PARSE:`/`VERIFY:`/`ADDONS:` verdicts from its summary (for the PR body and Phase 12 checklist), then proceed to Phase 11.
 - `SMOKE: REGRESSION` → present the 7-row probe table and the suspected-culprit note to the user. STOP. Do NOT proceed to Phase 11.
 - `SMOKE: BOOT_FAILED` → present the log excerpt. STOP. Do NOT proceed to Phase 11.
 
@@ -618,8 +622,10 @@ If a phase was skipped (e.g., Phase 8 skipped because user didn't supply node UR
 #### Configuration Verification
 - ✓ Network parameters calculated per formulas           (Phase 4 calculations table)
 - ~ All APIs tested and working                          (Phase 8 probe — see docs/<chain>/METHOD_PROBE_REPORT.md; stateful methods skipped)
-- ~ Block parsing validated for each API                 (Phase 8 existence-tested; full parse validation requires production traffic)
-- ✓ Verifications pass on live nodes                     (Phase 6 chain-id curl + Phase 8 multi-node probe)
+- ~ Block parsing validated for each API                 (Phase 8 existence-tested; full per-API parse validation requires production traffic)
+- ✓ Parse directives executed by live router             (Phase 8 Step 3.5: PARSE=<verdict>, VERIFY=<verdict>; Phase 10b re-check: <verdict or n/a>)
+- ~ Addons & extensions tested                            (Phase 8 Step 1c: <n> tested-ok / <n> failed / <n> not-testable — not-testable items need a supporting node to verify)
+- ✓ Verifications pass on live nodes                     (Phase 6 chain-id curl + Phase 8 boot-window verification scan + multi-node probe)
 - ☐ Compute units benchmarked under expected load        (user to measure)
 - ☐ Economic parameters reasonable (min_stake_provider, shares)  (user judgment)
 

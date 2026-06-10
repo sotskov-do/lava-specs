@@ -129,6 +129,8 @@ Classify:
 
 ## Layer 3 — Live validation (runtime confirmation, when RPC URL provided)
 
+Note: this layer approximates the router's parser with curl+jq (it does not model generic-parser fallback, `encoding` post-processing, or `DefaultValue` degradation). The authoritative runtime check happens later, in Phase 8 Step 3.5, where the dockerized router executes the directives itself and its metrics/log signatures are inspected. Layer 3's job is to catch obvious directive defects cheaply, before a docker boot is paid for.
+
 If `<mainnet_rpc_url>` is empty → record `LAYER_3: SKIPPED (no RPC URL provided)` and skip to the report.
 
 Otherwise, for every `parse_directive` in the candidate (extract with `jq`):

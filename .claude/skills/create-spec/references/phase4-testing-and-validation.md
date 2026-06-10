@@ -34,6 +34,7 @@ curl -X POST -H "Content-Type: application/json" \
    - [ ] Verify GET_BLOCKNUM returns current block number
    - [ ] Verify GET_BLOCK_BY_NUM returns block hash correctly
    - [ ] Verify GET_EARLIEST_BLOCK works for pruning detection
+   - [ ] Runtime confirmation: after the Phase 8 router boot, check `curl -s http://localhost:7779/metrics` — `lava_rpcsmartrouter_latest_block` > 0 proves the router parsed `GET_BLOCKNUM` through this spec (see smart-router-tester Step 3.5)
 
 4. **Test Verifications**:
    - [ ] Run chain-id verification against mainnet and testnet

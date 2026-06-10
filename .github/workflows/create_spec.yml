@@ -268,6 +268,27 @@ jobs:
             | Mainnet index | ${{ github.event.inputs.chain_mainnet_index }} |
             | Testnet index | ${{ github.event.inputs.chain_testnet_index }} |
             | Spec file | <chain>.json |
+            | Parse directives (runtime) | PARSE: <OK/FAIL/PARTIAL> (Phase 8) → <OK/FAIL/PARTIAL/n-a> (Phase 10b) |
+            | Verifications (runtime) | VERIFY: <OK/FAIL/PARTIAL> (Phase 8) → <OK/FAIL/PARTIAL/n-a> (Phase 10b) |
+
+            <The PARSE/VERIFY verdicts come from the smart-router-tester (Phase 8
+            Step 3.5) and smart-router-smoke-tester (Phase 10b Step 1.5) returns:
+            PARSE = GET_BLOCKNUM/GET_BLOCK_BY_NUM executed by the live router
+            (metrics-gated), VERIFY = per-verification boot outcomes (chain-id,
+            pruning/GET_EARLIEST_BLOCK, ...). If FAIL/PARTIAL, name the failing
+            directive/verification and the affected upstreams right below the
+            table. If Phase 8 was skipped, write "skipped" for both.>
+
+            ### Addon & extension coverage
+            <From the Phase 8 "Addon & extension coverage" table (re-checked in
+            Phase 10b). One row per addon/extension the spec declares; if none,
+            write "None declared in this spec.". NOT_TESTABLE means no provided
+            node supports it — name what evidence the capability probe returned,
+            so a reviewer can re-run with a more capable node URL.>
+
+            | Name | Type | Result | Notes |
+            |------|------|--------|-------|
+            | <archive/debug/...> | <addon/extension> | <✅ tested-ok / ❌ failed / ⚪ not testable> | <upstreams supporting it, or probe evidence for not-testable> |
 
             ### Inputs provided
             ${{ github.event.inputs.additional_data }}

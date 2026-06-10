@@ -48,9 +48,35 @@ $DOCKER run -d --name sr_<chain> \
   sr.yml --geolocation 1 --use-static-spec specs/ --log-level debug --log-format json
 ```
 
-Run the readiness check from Phase 8 Step 3 (poll the listener; fail fast on `panic|fatal|failed to (load|expand|resolve) spec|failed verification|cannot serve endpoint|no matching spec`). Re-use the SAME Phase-8 config — if the chain has subscriptions, it must still carry a `ws`/`wss` upstream in every `direct-rpc` block, or the router excludes all providers and refuses to serve.
+Run the readiness check from Phase 8 Step 3 (poll the listener; fail fast on `panic|fatal|failed to (load|expand|resolve) spec|all static providers failed verification|cannot serve endpoint|no matching spec` — per-provider `failed verification on provider startup` lines are NOT fatal; they are classified in Step 1.5). Re-use the SAME Phase-8 config — if the chain has subscriptions, it must still carry a `ws`/`wss` upstream in every `direct-rpc` block, or the router excludes all providers and refuses to serve.
 
 If the router fails to come up — listener never answers, or the log shows a fatal/spec-resolution error — STOP. Return the `$DOCKER logs` excerpt to the orchestrator: this is a **REGRESSION** introduced by Phase 10's fixes (`SMOKE: BOOT_FAILED`).
+
+## Step 1.5 — Parse-directive & verification runtime check (same as Phase 8 Step 3.5)
+
+The booted router's chain tracker executes the spec's `GET_BLOCKNUM`/`GET_BLOCK_BY_NUM` directives for real — Phase 10's fixes may have broken them even if the boot succeeded. Run this BEFORE the first probe:
+
+```bash
+sleep 30
+curl -s http://localhost:7779/metrics | grep -E '^lava_(rpc_endpoint_(latest_block|fetch_latest_(fails|success)|fetch_block_(fails|success))|rpcsmartrouter_latest_block)'
+
+PARSE_SIG='failed to parse response|failed formatResponseForParsing|failed ParseBlockHashFromReplyAndDecode|failed CraftChainMessage|Failed parsing default value|blockParsing - |expected parsed hashes length|tried decoding a hex response|failed to parse generic parser path|failed to unmarshal result'
+$DOCKER logs sr_<chain> 2>&1 | grep -E "$PARSE_SIG" | head -20
+```
+
+Verdict (same rules as Phase 8 Step 3.5): `lava_rpcsmartrouter_latest_block` > 0 → PARSE_BLOCKNUM OK, == 0 or absent → FAIL; `fetch_block_fails` > 0 with `..._success` == 0 → PARSE_BLOCK_BY_NUM FAIL; both block counters 0 → NOT_EXERCISED. Parse-signature lines are the diagnosis, the metrics are the gate (`blockParsing - rpcInput is error` = upstream issue, not directive defect).
+
+Then scan the boot window for verification outcomes (same rules as Phase 8 Step 3.5 (c) — this is where `GET_EARLIEST_BLOCK`/`pruning` and `chain-id` defects surface, including partial provider exclusions that do not fail the boot):
+
+```bash
+$DOCKER logs sr_<chain> 2>&1 | grep -F '[+] verified successfully' \
+  | grep -oE '"verification":"[a-z0-9_-]+"' | sort | uniq -c
+$DOCKER logs sr_<chain> 2>&1 | grep -E '\[-\] verify|failed verification on provider startup|invalid Verification on provider startup|some static providers failed verification|Bad verification definition' | head -20
+```
+
+Per spec verification name: OK (all providers pass) / FAIL (fails everywhere, or `Bad verification definition`) / PARTIAL (some providers excluded) / NOT_EXERCISED.
+
+If Phase 8 reported `PARSE: OK` (or `VERIFY: OK`) and the corresponding check now FAILS → **REGRESSION** (`SMOKE: REGRESSION`), same as a probe regression in Step 3.
 
 ## Step 2 — Re-probe a deterministic minimal set
 
@@ -65,6 +91,7 @@ Then probe these exactly, in order:
 1. `GET_BLOCKNUM` parse directive — same call as Phase 8.
 2. `chain-id` verification — call the verification method and confirm the response matches the spec's `expected_value`.
 3. **5 sampled read methods** — deterministically the first 5 non-stateful, non-subscription APIs (alphabetical by name) from the largest collection.
+4. **One probe per addon/extension that was `TESTED_OK` in Phase 8** (read the "Addon & extension coverage" table in `<PHASE_8_REPORT_PATH>`): for an addon, the first method of its collection; for an extension, the same `lava-extension`-header call Phase 8 used. The Phase-8 config at `/tmp/sr_<chain>.yml` already carries the `addons:` entries — do not strip them when regenerating it. `NOT_TESTABLE` items stay unprobed (carry them forward unchanged).
 
 Send every probe **through the router at `localhost:3360`** (subscriptions via `ws://localhost:3360`), exactly as Phase 8 does — NOT directly to the upstream `node-urls`.
 
@@ -72,10 +99,11 @@ Classify each result using the same scheme as Phase 8 (PASS / FAIL / SKIP / WARN
 
 ## Step 3 — Compare classifications against Phase 8
 
-Read `<PHASE_8_REPORT_PATH>` and look up each of the 7 probed items.
+Read `<PHASE_8_REPORT_PATH>` and look up each of the 7 probed items (plus the per-addon probes from Step 2 item 4).
 
 For each probe:
 - PASS in Phase 8 and now FAIL or TIMEOUT → **REGRESSION**.
+- `TESTED_OK` addon/extension in Phase 8 and its probe now FAILs → **REGRESSION**.
 - FAIL/WARN/TIMEOUT in Phase 8 and now PASS → improvement (record but do not alert).
 - All else → no change.
 
@@ -102,9 +130,9 @@ $DOCKER rm -f sr_<chain> 2>/dev/null || true
 
 Return one of:
 
-- `SMOKE: OK` — no regressions across all 7 probes. Include the 7-row probe table inline.
-- `SMOKE: REGRESSION` — one or more probes regressed. Include:
-  - the 7-row probe table
+- `SMOKE: OK` — no regressions across all 7 probes, the per-addon probes, AND the Step 1.5 parse-directive and verification checks. Include the probe table inline plus one-line verdicts (`PARSE: OK|FAIL|PARTIAL|NOT_EXERCISED`, `VERIFY: OK|FAIL|PARTIAL`, `ADDONS: <n> tested-ok / <n> failed / <n> not-testable`).
+- `SMOKE: REGRESSION` — one or more probes regressed, or the parse-directive/verification check regressed. Include:
+  - the 7-row probe table and the parse/verify verdicts with metric values / log excerpts
   - which probes regressed (Phase 8 classification → Phase 10b classification)
   - the most plausible entry from `<PHASE_10_FIX_LIST>` that likely caused the regression
 - `SMOKE: BOOT_FAILED` — the router crashed mid-boot. Include the relevant `$DOCKER logs` excerpt.
