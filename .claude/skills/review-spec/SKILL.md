@@ -21,10 +21,10 @@ To guarantee you read the whole file (it may exceed the Read tool's default limi
 Do NOT begin Phase 1 until you have observed the sentinel.
 
 If the chain already has documentation or a previous review, check:
-- **Chain docs**: `specs/docs/<CHAIN_NAME>/`
+- **Chain docs**: `docs/<CHAIN_NAME>/`
 
 For existing spec patterns, reference:
-- **Existing specs**: `specs/mainnet-1/specs/`, `specs/testnet-2/specs/`
+- **Existing specs**: the repo root, where all specs live flat as `<chain>.json`
 
 ## Arguments
 
@@ -156,7 +156,7 @@ Produce a gap report in markdown with:
 - **Evidence**: cite specific line numbers from the spec, API docs, and spec guide
 - **Impact**: explain what breaks or degrades if the gap is not fixed
 
-Save the report to `specs/docs/<CHAIN_NAME>/SPEC_REVIEW_GAPS.md`.
+Save the report to `docs/<CHAIN_NAME>/SPEC_REVIEW_GAPS.md`.
 
 After the report, summarize:
 - Total number of endpoints reviewed

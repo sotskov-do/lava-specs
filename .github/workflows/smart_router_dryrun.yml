@@ -1,0 +1,213 @@
+# Smart-Router dry run — fast, agent-free pre-flight for create-spec Phase 8/10b.
+#
+# Validates the docker mechanics in isolation (no Claude agent, ~1 minute):
+#   1. GHCR login + `docker pull ghcr.io/magma-devs/smart-router:main`
+#      (this is where an access misconfig surfaces — a 403 here means the
+#      smart-router package has not granted this repo read access).
+#   2. Boot the router against a real spec from this repo (default ETH1 from
+#      ethereum.json) with public RPC upstreams, exactly as the Phase 8 tester
+#      does: stage the flat specs dir, write an endpoints + direct-rpc config,
+#      `docker run`, poll readiness, probe one method through localhost:3360.
+#   3. Print router logs and tear down.
+#
+# One-time setup: the same GHCR package-access requirement as create_spec.yml
+# (item 4 of its header) — Magma-Devs/smart-router package must grant this repo
+# Read access, or be org-internal with this repo in the same org.
+#
+# Manual trigger: Actions tab -> "Smart-Router Dry Run" -> Run workflow.
+name: "Smart-Router Dry Run"
+
+on:
+  workflow_dispatch:
+    inputs:
+      chain_index:
+        description: "Spec index to boot (must exist in a repo-root <chain>.json)"
+        required: true
+        type: string
+        default: "ETH1"
+      api_interface:
+        description: "api-interface: jsonrpc | rest | grpc | tendermintrpc"
+        required: true
+        type: string
+        default: "jsonrpc"
+      node_urls:
+        description: "Comma-separated upstream RPC URLs. For subscription chains (e.g. ETH1) include a wss:// URL or the router excludes the provider."
+        required: true
+        type: string
+        default: "https://ethereum-rpc.publicnode.com,wss://ethereum-rpc.publicnode.com"
+      probe_request:
+        description: "jsonrpc/tendermintrpc: JSON-RPC body to POST. rest: a GET path beginning with /"
+        required: false
+        type: string
+        default: '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}'
+
+permissions:
+  contents: read
+  packages: read   # pull the private smart-router image from GHCR
+
+jobs:
+  dryrun:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      IMAGE: ghcr.io/magma-devs/smart-router:main
+      CHAIN_INDEX: ${{ github.event.inputs.chain_index }}
+      API_INTERFACE: ${{ github.event.inputs.api_interface }}
+      NODE_URLS: ${{ github.event.inputs.node_urls }}
+      PROBE_REQUEST: ${{ github.event.inputs.probe_request }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Personal fork: set a GHCR_PAT secret (classic PAT with read:packages,
+      # owned by a user with read access to Magma-Devs/smart-router) — the
+      # built-in GITHUB_TOKEN cannot pull a package owned by another org.
+      # Same org: leave GHCR_PAT unset; GITHUB_TOKEN is used (the `||` fallback).
+      - name: Log into GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_PAT || secrets.GITHUB_TOKEN }}
+
+      - name: Pull smart-router image
+        run: |
+          echo "Pulling $IMAGE ..."
+          docker pull "$IMAGE"
+          docker image inspect "$IMAGE" --format 'Pulled: {{.RepoTags}} (digest {{index .RepoDigests 0}})'
+
+      - name: Stage specs + write router config
+        run: |
+          set -euo pipefail
+          # The candidate index must exist in a repo-root <chain>.json.
+          if ! ls ./*.json >/dev/null 2>&1; then
+            echo "No spec JSONs at repo root" >&2; exit 1
+          fi
+          found=""
+          for f in ./*.json; do
+            if jq -e --arg idx "$CHAIN_INDEX" \
+                 '.proposal.specs[]? | select(.index == $idx)' "$f" >/dev/null 2>&1; then
+              found="$f"; break
+            fi
+          done
+          if [ -z "$found" ]; then
+            echo "No repo-root spec declares index ${CHAIN_INDEX}" >&2
+            echo "Available indices:" >&2
+            jq -r '.proposal.specs[]?.index' ./*.json 2>/dev/null | sort -u >&2 || true
+            exit 1
+          fi
+          echo "Index ${CHAIN_INDEX} found in: $found"
+
+          # --use-static-spec takes a directory; stage a clean copy of all flat
+          # specs so the candidate's imports resolve from the same set.
+          mkdir -p /tmp/sr_specs
+          cp ./*.json /tmp/sr_specs/
+
+          # Build one direct-rpc upstream block per node URL.
+          {
+            echo 'metrics-listen-address: "0.0.0.0:7779"'
+            echo ''
+            echo 'endpoints:'
+            echo '  - listen-address: "0.0.0.0:3360"'
+            echo '    network-address: "0.0.0.0:3360"'
+            echo "    chain-id: \"${CHAIN_INDEX}\""
+            echo "    api-interface: \"${API_INTERFACE}\""
+            echo ''
+            # One provider block holding all URLs, so an http URL and its wss
+            # pair stay in the same provider. The router REQUIRES a ws/wss URL
+            # for any chain whose spec enables subscriptions (e.g. ETH1's
+            # eth_subscribe) — without it the provider fails verification and is
+            # excluded, and a single-provider endpoint then cannot serve.
+            echo 'direct-rpc:'
+            echo "  - name: \"dryrun-${CHAIN_INDEX}\""
+            echo "    chain-id: \"${CHAIN_INDEX}\""
+            echo "    api-interface: \"${API_INTERFACE}\""
+            echo '    node-urls:'
+            IFS=',' read -ra URLS <<< "$NODE_URLS"
+            for u in "${URLS[@]}"; do
+              u="$(echo "$u" | xargs)"   # trim whitespace
+              [ -z "$u" ] && continue
+              echo "      - url: \"${u}\""
+            done
+          } > /tmp/sr.yml
+
+          echo "----- /tmp/sr.yml -----"
+          cat /tmp/sr.yml
+          python3 -c 'import yaml; yaml.safe_load(open("/tmp/sr.yml"))' && echo "YAML OK"
+
+      - name: Boot router
+        run: |
+          set -euo pipefail
+          docker rm -f sr_dryrun 2>/dev/null || true
+          docker run -d --name sr_dryrun \
+            -p 3360:3360 -p 7779:7779 \
+            -v /tmp/sr_specs:/smart-router/specs:ro \
+            -v /tmp/sr.yml:/smart-router/sr.yml:ro \
+            "$IMAGE" \
+            sr.yml --geolocation 1 --use-static-spec specs/ --log-level debug --log-format json
+
+          FATAL='panic|fatal|failed to (load|expand|resolve) spec|verification failed|failed verification|cannot serve endpoint|no matching spec'
+          echo "Waiting for the listener (max 120s)..."
+          ok=""; fatal=""
+          for _ in $(seq 1 60); do
+            if curl -s -o /dev/null -m 3 http://localhost:3360 \
+                 -H "content-type: application/json" \
+                 -d '{"jsonrpc":"2.0","method":"","params":[],"id":1}'; then
+              ok="yes"; break
+            fi
+            # The container may also exit on a fatal error; either way, detect it.
+            if docker logs sr_dryrun 2>&1 | grep -qiE "$FATAL"; then
+              fatal="yes"; break
+            fi
+            if [ "$(docker inspect -f '{{.State.Running}}' sr_dryrun 2>/dev/null)" != "true" ]; then
+              fatal="yes"; break
+            fi
+            sleep 2
+          done
+          echo "----- router logs (tail) -----"
+          docker logs --tail 80 sr_dryrun 2>&1 || true
+          if [ -z "$ok" ]; then
+            # Surface the most common spec-config cause with an actionable hint.
+            if docker logs sr_dryrun 2>&1 | grep -qi "websocket is not provided"; then
+              echo "::error::Router excluded all providers: this chain's spec enables subscriptions but no ws/wss upstream was supplied. Add a wss:// URL to node_urls and re-run."
+            elif [ -n "$fatal" ]; then
+              echo "::error::Router hit a fatal/spec error before serving (see logs above)"
+            else
+              echo "::error::Router listener did not come up"
+            fi
+            exit 1
+          fi
+          echo "Listener is up."
+
+      - name: Probe one method
+        run: |
+          set -euo pipefail
+          case "$API_INTERFACE" in
+            rest)
+              # PROBE_REQUEST is a GET path beginning with /
+              echo "GET http://localhost:3360${PROBE_REQUEST}"
+              resp="$(curl -s -m 10 "http://localhost:3360${PROBE_REQUEST}")"
+              ;;
+            *)
+              echo "POST http://localhost:3360  body=${PROBE_REQUEST}"
+              resp="$(curl -s -m 10 -X POST http://localhost:3360 \
+                        -H 'content-type: application/json' \
+                        -d "${PROBE_REQUEST}")"
+              ;;
+          esac
+          echo "----- response -----"
+          echo "$resp"
+          # PASS if we got a result field; FAIL on -32601 (method not routed).
+          if echo "$resp" | grep -q '"result"'; then
+            echo "PROBE: PASS (got result)"
+          elif echo "$resp" | grep -q '"code":-32601'; then
+            echo "::error::PROBE FAIL — method not found/routed (-32601)"; exit 1
+          elif [ -n "$resp" ]; then
+            echo "PROBE: responded (no result field) — inspect the body above"
+          else
+            echo "::error::PROBE FAIL — empty response"; exit 1
+          fi
+
+      - name: Tear down
+        if: always()
+        run: docker rm -f sr_dryrun 2>/dev/null || true

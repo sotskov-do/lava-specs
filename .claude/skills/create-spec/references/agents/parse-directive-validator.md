@@ -6,7 +6,7 @@ You are a subagent dispatched by the create-spec orchestrator to perform Phase 6
 
 ## Inputs (substituted by orchestrator before dispatch)
 
-- `<spec_path>` — absolute path to the candidate spec JSON (e.g., `specs/testnet-2/specs/iota.json`)
+- `<spec_path>` — path to the candidate spec JSON (e.g., `iota.json` at the repo root)
 - `<chain>` — lowercased chain name (e.g., `iota`) — used for `/tmp` filenames
 - `<INDEX>` — spec index UPPERCASE (e.g., `IOTA`)
 - `<api_interface>` — `jsonrpc` | `rest` | `grpc` | `tendermintrpc`
@@ -75,7 +75,7 @@ Required tags: derive from the extracted rows below; treat `GET_EARLIEST_BLOCK` 
 
 Required tags: derive from the extracted rows below.
 
-Note: The canonical tendermintrpc directives are defined in `specs/mainnet-1/specs/tendermint.json` (the base Tendermint spec). Cosmos chains using tendermintrpc inherit via import from this base spec. Direct chain-level specs (e.g., cosmoshub.json) have empty `parse_directives` arrays because they inherit from imports.
+Note: The canonical tendermintrpc directives are defined in `tendermint.json` (the base Tendermint spec). Cosmos chains using tendermintrpc inherit via import from this base spec. Direct chain-level specs (e.g., cosmoshub.json) have empty `parse_directives` arrays because they inherit from imports.
 
 | function_tag | api_name | function_template | parser_func | parser_arg |
 |---|---|---|---|---|
@@ -90,7 +90,7 @@ Note: The canonical tendermintrpc directives are defined in `specs/mainnet-1/spe
 
 Required tags: derive from the extracted rows below.
 
-Note: The canonical REST directives are defined in `specs/mainnet-1/specs/cosmossdk.json` (the base Cosmos SDK spec). Cosmos chains using REST inherit via import. Direct chain-level specs (e.g., cosmoshub.json) have empty `parse_directives` arrays because they inherit from imports.
+Note: The canonical REST directives are defined in `cosmossdk.json` (the base Cosmos SDK spec). Cosmos chains using REST inherit via import. Direct chain-level specs (e.g., cosmoshub.json) have empty `parse_directives` arrays because they inherit from imports.
 
 | function_tag | api_name | function_template | parser_func | parser_arg |
 |---|---|---|---|---|

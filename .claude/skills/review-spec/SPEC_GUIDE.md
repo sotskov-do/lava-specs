@@ -265,7 +265,7 @@ Excluded (deprecated): /addresses/{address}/txs, /assets/{asset}/txs
 **Objective**: Choose a unique spec identifier
 
 **Tasks**:
-- [ ] Review existing specs in `mainnet-1/specs/`, `testnet-1/specs/`, `testnet-2/specs/`
+- [ ] Review existing specs at the repo root (all specs live flat as `<chain>.json`)
 - [ ] Choose a unique, short index (3-10 characters, uppercase)
 - [ ] Follow naming conventions:
   - Mainnet: `CHAINNAME` (e.g., `ETH1`, `POLYGON`, `STRK`)
@@ -1458,7 +1458,7 @@ curl -X POST -H "Content-Type: application/json" \
 #### Step 5.1: Create Spec Documentation
 **Objective**: Provide comprehensive documentation for the spec
 
-**Create**: `specs/docs/[CHAINNAME]/SPEC_IMPLEMENTATION.md`
+**Create**: `docs/[CHAINNAME]/SPEC_IMPLEMENTATION.md`
 
 **Template**:
 ```markdown
@@ -1523,7 +1523,7 @@ curl -X POST -H "Content-Type: application/json" \
 #### Step 5.2: Create API Reference
 **Objective**: Document each API method in detail
 
-**Create**: `specs/docs/[CHAINNAME]/API_REFERENCE.md`
+**Create**: `docs/[CHAINNAME]/API_REFERENCE.md`
 
 **Template**:
 ```markdown
@@ -1574,7 +1574,7 @@ curl -X POST -H "Content-Type: application/json" \
 #### Step 5.3: Create Testing Guide
 **Objective**: Help others test and verify the spec
 
-**Create**: `specs/docs/[CHAINNAME]/TESTING_GUIDE.md`
+**Create**: `docs/[CHAINNAME]/TESTING_GUIDE.md`
 
 **Template**:
 ```markdown
@@ -1589,7 +1589,7 @@ curl -X POST -H "Content-Type: application/json" \
 
 ### 1. Validate Spec File
 ```bash
-jq . specs/mainnet-1/specs/chainname.json
+jq . chainname.json
 ```
 
 ### 2. Test Chain ID Verification
@@ -1625,7 +1625,7 @@ curl -X POST -H "Content-Type: application/json" \
 #### Step 5.4: Create Quick Start Guide
 **Objective**: Help providers get started quickly
 
-**Create**: `specs/docs/[CHAINNAME]/QUICK_START.md`
+**Create**: `docs/[CHAINNAME]/QUICK_START.md`
 
 **Template**:
 ```markdown
@@ -1703,16 +1703,11 @@ lavad tx pairing stake-provider \
 #### Step 6.2: Save Proposal Files
 **Objective**: Store proposal in correct locations
 
-**Save Locations**:
+**Save Location**:
 ```bash
-# For new specs being proposed
-specs/undeployed/chainname.json
-
-# After governance approval, move to:
-specs/mainnet-1/specs/chainname.json  # For mainnet deployment
-# or
-specs/testnet-1/specs/chainname.json  # For testnet only
-specs/testnet-2/specs/chainname.json  # For testnet-2 only
+# All specs live flat at the repo root, one file per chain. A single
+# <chain>.json holds both the mainnet and testnet entries under proposal.specs[].
+chainname.json
 ```
 
 #### Step 6.3: Create Proposal Description
@@ -1997,7 +1992,7 @@ git commit -m "Move [Chain Name] spec to mainnet-1 after governance approval"
 #### Step 8.3: Versioning & Changelog
 **Maintain History**:
 
-**Create**: `specs/docs/[CHAINNAME]/CHANGELOG.md`
+**Create**: `docs/[CHAINNAME]/CHANGELOG.md`
 ```markdown
 # [CHAIN_NAME] Specification Changelog
 
@@ -2084,9 +2079,9 @@ git commit -m "Move [Chain Name] spec to mainnet-1 after governance approval"
 ### Internal Resources
 - **Spec Protobuf**: `proto/lavanet/lava/spec/spec.proto`
 - **ServiceApi Protobuf**: `proto/lavanet/lava/spec/service_api.proto`
-- **Existing Specs**: `specs/mainnet-1/specs/`
+- **Existing Specs**: ``
 - **CU Pricing Reference**: `ethereum.json` (ETH1), `tendermint.json` (TENDERMINT) — use for baseline alignment
-- **Example Documentation**: `specs/docs/KASPA/`, `specs/docs/STRK/`
+- **Example Documentation**: `docs/KASPA/`, `docs/STRK/`
 
 ### External Resources
 - **Lava Documentation**: https://docs.lavanet.xyz
@@ -2218,7 +2213,7 @@ git commit -m "Move [Chain Name] spec to mainnet-1 after governance approval"
 If you encounter issues or have questions:
 
 1. **Check existing specs** for similar chains
-2. **Review documentation** in `specs/docs/`
+2. **Review documentation** in `docs/`
 3. **Ask in Discord** - Lava community channel
 4. **Open GitHub issue** for spec-related questions
 5. **Consult Lava docs** at https://docs.lavanet.xyz

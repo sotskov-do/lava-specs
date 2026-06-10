@@ -9,7 +9,20 @@
 #      permitted to create or approve pull requests"). Equivalent CLI:
 #        gh api -X PUT /repos/<owner>/<repo>/actions/permissions/workflow \
 #          -f default_workflow_permissions=write -F can_approve_pull_request_reviews=true
-#   3. The create-spec skill must be present on `main` (PR #2300 merged).
+#   3. The create-spec skill must be present on `main`.
+#   4. GHCR access to the private smart-router image. Phase 8/10b pull
+#      `ghcr.io/magma-devs/smart-router:main`. How to authenticate depends on
+#      WHERE this repo lives:
+#        - Same org as the package (Magma-Devs/lava-specs): the built-in
+#          GITHUB_TOKEN works if the package is org-internal, OR (if private)
+#          after granting this repo read access: Magma-Devs/smart-router ->
+#          Packages -> smart-router -> Package settings -> "Manage Actions
+#          access" -> add this repository (Read). Leave GHCR_PAT unset.
+#        - Personal fork (e.g. you/lava-specs, a different owner): the built-in
+#          GITHUB_TOKEN CANNOT pull another org's package. Create a classic PAT
+#          with `read:packages` owned by a user who has read access to the
+#          smart-router package, and store it as the repo secret GHCR_PAT. The
+#          login step prefers GHCR_PAT when set.
 #
 # The PR is opened with the automatic GITHUB_TOKEN (author: github-actions[bot]).
 # NOTE: GitHub does not auto-run pull_request CI for a GITHUB_TOKEN-opened PR;
@@ -47,11 +60,13 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  packages: read   # pull the private smart-router image from GHCR (Phase 8/10b)
 
 # Per-chain: serialize only runs for the SAME chain (they race on the same
 # branch/PR). Different chains run in parallel — each run gets its own VM, so the
-# boot script's hardcoded ports/screens don't collide across runs. (Use a single
-# static group instead only if you move to a self-hosted runner shared by runs.)
+# smart-router container's published ports (3360+) don't collide across runs.
+# (Use a single static group instead only if you move to a self-hosted runner
+# shared by runs, where the host docker daemon and ports are shared.)
 concurrency:
   group: create-spec-${{ github.event.inputs.chain_name }}
   cancel-in-progress: false
@@ -97,35 +112,74 @@ jobs:
           git checkout -b "$name"
           git push -u origin "$name"
 
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: "1.23.3"
-
       # Node 22 guarantees a global `WebSocket` so the agent can probe ws/
-      # subscription chains (eth_subscribe) through the consumer without npm installs.
+      # subscription chains (eth_subscribe) through the smart-router without npm installs.
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: "22"
 
-      # Phase 8 of create-spec builds the binaries itself: its boot script
-      # scripts/pre_setups/init_chain_only_with_node.sh runs `make install-all`
-      # (installs lavad/lavap into $(go env GOPATH)/bin) and drives everything
-      # inside `screen` sessions. Tool audit of the boot + live-probe path:
-      #   needed & preinstalled on ubuntu-latest: jq, curl, make, awk, sed,
-      #     timeout, tee, python3, node (Node 22 pinned above for WebSocket);
-      #   needed & MISSING on a clean runner: screen, killall (psmisc), grpcurl
-      #     (gRPC probes) — installed below;
-      #   NOT needed: protoc, websocat, buf.
-      # jq is installed explicitly so the dependency is robust to runner image
-      # changes. lavad/lavap + grpcurl need GOPATH/bin on PATH.
-      - name: Prepare boot environment (for create-spec Phase 8)
+      # Phase 8/10b no longer build any lava binaries: they boot the spec inside
+      # the dockerized smart-router (ghcr.io/magma-devs/smart-router:main) and
+      # probe every method through it. ubuntu-latest ships Docker preinstalled
+      # and running, and this job runs on the host (not in a `container:`), so
+      # the agent can `docker run` directly — NO docker-in-docker service needed.
+      # We only install the probe tooling the agent uses against localhost:3360:
+      #   preinstalled on ubuntu-latest: curl, awk, sed, timeout, tee, python3,
+      #     node (Node 22 pinned above for WebSocket), docker;
+      #   installed below: jq (robust to runner-image changes), grpcurl (gRPC-
+      #     interface probes — fetched as a release binary, no Go toolchain).
+      - name: Install probe tools (for create-spec Phase 8/10b)
         run: |
           sudo apt-get update
-          sudo apt-get install -y screen psmisc jq
-          go install github.com/fullstorydev/grpcurl/cmd/grpcurl@latest
-          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+          sudo apt-get install -y jq
+          GRPCURL_VERSION=1.9.1
+          curl -fsSL "https://github.com/fullstorydev/grpcurl/releases/download/v${GRPCURL_VERSION}/grpcurl_${GRPCURL_VERSION}_linux_x86_64.tar.gz" \
+            | sudo tar -xz -C /usr/local/bin grpcurl
+          grpcurl --version || true
+
+      # Log in to GHCR so the agent's `docker pull` of the private smart-router
+      # image succeeds. Credentials land in the runner user's docker config,
+      # which the claude-code-action step (same user, same host) reuses.
+      # Personal fork: set a GHCR_PAT secret (classic PAT with read:packages,
+      # owned by a user with read access to Magma-Devs/smart-router) — the
+      # built-in GITHUB_TOKEN cannot pull a package owned by another org.
+      # Same org: leave GHCR_PAT unset; GITHUB_TOKEN is used (the `||` fallback).
+      - name: Log into GHCR (for the smart-router image)
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_PAT || secrets.GITHUB_TOKEN }}
+
+      # Fail fast: pull (and sanity-probe) the smart-router image right after
+      # login, so a GHCR access/auth misconfig surfaces in seconds instead of
+      # ~1.5h into the agent run when Phase 8 first reaches for it. The full
+      # boot + method probe is exercised by Phase 8 itself (and standalone by
+      # smart_router_dryrun.yml); here we only confirm the image pulls and runs.
+      - name: Pull + probe smart-router image (pre-flight)
+        run: |
+          set -euo pipefail
+          IMAGE=ghcr.io/magma-devs/smart-router:main
+          echo "Pulling $IMAGE ..."
+          docker pull "$IMAGE"
+          docker image inspect "$IMAGE" --format 'Pulled OK: {{index .RepoDigests 0}}'
+          # Probe that the image actually executes (no config/specs/network
+          # needed). Run with no args + a short timeout: the entrypoint prints
+          # its startup banner ("Process Started" / "Running Smart Router")
+          # BEFORE it needs a config, then exits — that's expected. We only hard
+          # fail on a genuine container-exec failure (arch mismatch / missing
+          # binary), which Docker reports as "exec format error".
+          echo "Probing image entrypoint ..."
+          out="$(timeout 15 docker run --rm "$IMAGE" 2>&1 || true)"
+          echo "$out" | head -20
+          if echo "$out" | grep -qiE "exec format error|cannot execute binary"; then
+            echo "::error::smart-router image failed to execute — arch/binary problem (see output above)"; exit 1
+          elif echo "$out" | grep -qiE "Process Started|Running Smart Router|RPCSmartRouter"; then
+            echo "Image runs (entrypoint started)."
+          else
+            echo "::warning::Image pulled and ran without an exec error, but the startup banner was not seen — continuing (Phase 8 will do the full boot)."
+          fi
 
       - name: Run create-spec
         id: run
@@ -164,7 +218,7 @@ jobs:
             - Additional data (docs URLs, node URLs, inheritance hints): ${{ github.event.inputs.additional_data }}
 
             Execution rules for this unattended CI run:
-            - Run the FULL 12-phase pipeline, INCLUDING the Phase 8 local provider boot and the Phase 10b re-probe.
+            - Run the FULL 12-phase pipeline, INCLUDING the Phase 8 smart-router boot and the Phase 10b re-probe.
             - There is NO human available. At EVERY STOP-and-ask gate (archive
               extension include/omit, block-time disagreement >20%, existing-file
               prompt, archive NEEDS_HUMAN_DECISION), DO NOT stop — auto-decide with
@@ -201,7 +255,7 @@ jobs:
             | Chain name | ${{ github.event.inputs.chain_name }} |
             | Mainnet index | ${{ github.event.inputs.chain_mainnet_index }} |
             | Testnet index | ${{ github.event.inputs.chain_testnet_index }} |
-            | Spec file | specs/testnet-2/specs/<chain>.json |
+            | Spec file | <chain>.json |
 
             ### Inputs provided
             ${{ github.event.inputs.additional_data }}
@@ -220,7 +274,7 @@ jobs:
             ### Supporting evidence (INLINE — do NOT reference file paths)
             Reviewers cannot open /tmp files or uncommitted docs, so paste the
             ACTUAL CONTENT here, each inside a collapsible <details> block. Never
-            write "see /tmp/..." or "see specs/docs/..."; inline the content itself.
+            write "see /tmp/..." or "see docs/..."; inline the content itself.
 
             <details><summary>Phase-8 method probe report</summary>
 
@@ -240,14 +294,14 @@ jobs:
       - name: Verify spec produced
         id: verify
         run: |
-          # File is named after the mainnet index lowercased (e.g. ZEC -> zec.json),
-          # NOT the chain name.
+          # Specs live flat at the repo root. The file is named after the mainnet
+          # index lowercased (e.g. ZEC -> zec.json), NOT the chain name.
           index_lower="${{ steps.branch.outputs.index_lower }}"
-          spec="specs/testnet-2/specs/${index_lower}.json"
+          spec="${index_lower}.json"
           if [ ! -f "$spec" ]; then
             echo "Expected spec file $spec was not produced by create-spec" >&2
-            echo "--- specs/testnet-2/specs/ contents (for debugging) ---" >&2
-            ls -1 specs/testnet-2/specs/ >&2 || true
+            echo "--- repo-root *.json (for debugging) ---" >&2
+            ls -1 ./*.json >&2 || true
             exit 1
           fi
           echo "spec=$spec" >> "$GITHUB_OUTPUT"
@@ -258,7 +312,9 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add specs/testnet-2/specs/
+          # Commit only the spec file at the repo root. Working artifacts the
+          # skill emits (docs/<chain>/ probe + review reports) are gitignored.
+          git add "${{ steps.verify.outputs.spec }}"
           git commit -m "feat(spec): add ${CHAIN_NAME} chain spec"
           git push origin "${{ steps.branch.outputs.name }}"
 

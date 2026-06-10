@@ -1,11 +1,11 @@
 ---
 name: create-spec
-description: "Generate a single Lava chain spec JSON file at specs/testnet-2/specs/<chain>.json containing both mainnet and testnet entries under one proposal.specs[] array. Use when the user asks to add support for a new blockchain, create or build a chain spec, or onboard a chain to Lava. Runs a 12-phase pipeline with parallel research agents, formula-gated synthesis, autonomous jq validation, local provider boot + multi-node method probing, and worktree-isolated parallel /review-spec reviewers."
+description: "Generate a single Lava chain spec JSON file at <chain>.json containing both mainnet and testnet entries under one proposal.specs[] array. Use when the user asks to add support for a new blockchain, create or build a chain spec, or onboard a chain to Lava. Runs a 12-phase pipeline with parallel research agents, formula-gated synthesis, autonomous jq validation, a dockerized smart-router boot + multi-node method probing, and parallel /review-spec reviewers."
 ---
 
 # Create Spec — Lava Chain Specification
 
-This skill produces a single JSON file at `specs/testnet-2/specs/<chain>.json` that contains both mainnet and testnet spec entries under one `proposal.specs[]` array (matching the format of `specs/testnet-2/specs/iota.json`). The testnet entry imports the mainnet entry and overrides only the `chain-id` verification value.
+This skill produces a single JSON file at `<chain>.json` that contains both mainnet and testnet spec entries under one `proposal.specs[]` array (matching the format of `iota.json`). The testnet entry imports the mainnet entry and overrides only the `chain-id` verification value.
 
 The skill orchestrates a 12-phase pipeline. It does NOT generate documentation, governance proposals, or execute git operations. If the user asks for any of those, stop and confirm scope before continuing.
 
@@ -22,15 +22,15 @@ This skill is cost-optimized as a **hybrid**: the orchestrator (you) inherits wh
 | Static validators | 6 | `haiku` | Deterministic-leaning, several jq-backed. **Bump `cu-semantic` / `parse-directive` / `methods-coverage` to `sonnet`** if they emit false PASSes on complex chains |
 | Reviewers (`/review-spec`) | 9, 11 | `sonnet` | Judgment-heavy safety net; **bump to `opus`** if reviews miss issues on hard chains |
 | Fixers | 6, 10 | `sonnet` | Apply a given edit list — needs care but not deep reasoning |
-| Provider boot + probe | 8, 10b | `sonnet` | Mostly bash/build/curl execution |
+| Smart-router boot + probe | 8, 10b | `sonnet` | Mostly docker/curl execution |
 
 To run the whole skill on one tier, ignore the per-role values and set every dispatch's `model:` the same (or drop it to inherit). The `run_stats` report at Phase 12 prints which model(s) actually ran.
 
 ## Output target
 
-- **Path:** `specs/testnet-2/specs/<chain>.json` (lowercase filename matching the mainnet `index` lowercased — e.g. `iota.json`, `polygon.json`)
+- **Path:** `<chain>.json` (lowercase filename matching the mainnet `index` lowercased — e.g. `iota.json`, `polygon.json`)
 - **Structure:** single file, `proposal.title` + `proposal.description` + `proposal.specs[]` (2 entries: mainnet + testnet) + `deposit: "10001000ulava"`
-- **Reference:** `specs/testnet-2/specs/iota.json` is the canonical example
+- **Reference:** `iota.json` is the canonical example
 
 ## Full-read enforcement (mandatory)
 
@@ -52,12 +52,12 @@ date +%s > /tmp/create_spec_run_start.epoch
 cat /tmp/create_spec_run_start.epoch
 ```
 
-Then check whether `specs/testnet-2/specs/<chain>.json` already exists, where `<chain>` is the lowercased mainnet index the user wants to add.
+Then check whether `<chain>.json` already exists, where `<chain>` is the lowercased mainnet index the user wants to add.
 
 Run:
 
 ```bash
-ls specs/testnet-2/specs/<chain>.json 2>/dev/null
+ls <chain>.json 2>/dev/null
 ```
 
 - If the file exists, ask the user: "Use as base / adapt / scratch?" Do not overwrite without explicit confirmation.
@@ -158,7 +158,7 @@ After the user has had a chance to challenge the table, construct draft JSON app
 
 - **NEVER extract spec content from git history.** You (the orchestrator) MUST NOT run `git show <commit>:specs/...`, `git log -p -- specs/...`, `git restore --source=<commit> specs/...`, or any similar command to retrieve the contents of a spec that previously existed in this repo but is no longer in the working tree. The `upstream-spec-scout` agent is bound by the same rule (see `references/agents/upstream-spec-scout.md`). Two reasons: (1) **Evaluation bias** — when this skill is being evaluated, the "gold" spec being scored against is frequently the recently-deleted file one or two commits back; recovering it via git makes the candidate-vs-gold comparison circular and invalidates the score. (2) **Staleness** — a deleted spec was deleted for a reason, usually because it was wrong; recovering it bakes the defects back in. If the scout's report mentions "X previously existed in git history", treat that as a name-level note only — do NOT go retrieve the file yourself. Build from the chain's current docs + sibling-spec templates in the working tree (e.g., `sui.json` for IOTA).
 - **REJECT all agent "trim", "scope", "exclude", or "narrow" recommendations.** Research agents (api-docs-researcher in particular) may suggest reducing the method set with framing like "scoping suggestions trim to ~50" or "consider excluding the foo_* family". You MUST ignore these suggestions. The full discovered method list is the input to synthesis. Apply only the explicit-omission rule below — never the agent's opinion.
-- **Method-set input = UNION of api-docs-researcher AND upstream-spec-scout (A).** The synthesis input is the union of: (1) every method `api-docs-researcher` discovered from chain docs/WebSearch, AND (2) every method `upstream-spec-scout` found in any existing spec (deleted-from-branch, sister-ecosystem template like `sui.json` for IOTA, prior version in `specs/mainnet-1/`, or any matching upstream). If the scout found a method that the researcher didn't, **INCLUDE IT** — existing-spec evidence is higher quality than fresh web search. The only valid reason to omit a scout-found method is an empirical curl proving the method no longer exists on the chain (`-32601 method not found` against the public RPC). "Researcher didn't find it" is NOT a valid omission reason.
+- **Method-set input = UNION of api-docs-researcher AND upstream-spec-scout (A).** The synthesis input is the union of: (1) every method `api-docs-researcher` discovered from chain docs/WebSearch, AND (2) every method `upstream-spec-scout` found in any existing spec (deleted-from-branch, sister-ecosystem template like `sui.json` for IOTA, an older sibling spec in the working tree, or any matching upstream). If the scout found a method that the researcher didn't, **INCLUDE IT** — existing-spec evidence is higher quality than fresh web search. The only valid reason to omit a scout-found method is an empirical curl proving the method no longer exists on the chain (`-32601 method not found` against the public RPC). "Researcher didn't find it" is NOT a valid omission reason.
 - **All methods from chain docs MUST appear in the spec.** Take the COMPLETE method list (union of researcher + scout) and include every method. The only acceptable reasons to omit are documented in the chain's API reference itself: explicitly marked deprecated, explicitly internal/admin-only, or explicitly platform-specific (e.g., GraphQL-only on a JSON-RPC spec). "The agent suggested trimming" is NOT a valid reason.
 - **Subscription methods belong in MAIN, not in an add-on (B).** Methods with `category.subscription: true` (subscribe/unsubscribe pairs) live in the **same collection as the chain's core read API**, NOT in a separate `add_on: "indexer"` collection. The `indexer` add-on is for methods that require an external indexer service running (e.g., metrics aggregations like `iotax_getNetworkMetrics`, `iotax_getMoveCallMetrics`, address rollups, epoch rollups). Methods served by every regular full node — including dynamic-fields queries, owned-objects, query-events, query-transactions, and ALL subscriptions — belong in MAIN. Cross-check the scout's findings: if the scout's template spec has a method in MAIN, KEEP IT IN MAIN.
 - **Parse-directive completeness for subscriptions (D).** For every API with `category.subscription: true`:
@@ -234,8 +234,8 @@ If `imports != []`, perform the two-step audit from `references/phase3.1-inherit
 
 ```bash
 PARENT="ETH1"  # or whatever the import is
-PARENT_FILE="specs/mainnet-1/specs/${PARENT,,}.json"
-[ -f "$PARENT_FILE" ] || PARENT_FILE="specs/testnet-2/specs/${PARENT,,}.json"
+# All specs live flat at the repo root; the parent file is the lowercased index.
+PARENT_FILE="${PARENT,,}.json"
 jq -r '.proposal.specs[] | select(.index == "'$PARENT'") | .api_collections[].apis[].name' "$PARENT_FILE" | sort -u > /tmp/parent_methods.txt
 # Compare against chain-docs methods (from api-docs-researcher report); write its method list to /tmp/chain_methods.txt
 comm -23 /tmp/parent_methods.txt /tmp/chain_methods.txt > /tmp/ghosts.txt
@@ -273,7 +273,7 @@ Walk this checklist to confirm the orchestrator's working state. The first four 
 - `name`, `enabled`, `min_stake_provider`, `shares` present at top level of each spec entry
 - `chain-id` `expected_value` obtained from a **live curl** against the mainnet RPC (not converted from a docs decimal)
 - Testnet entry's `chain-id` `expected_value` obtained from a live curl against the testnet RPC
-- Every API with `category.hanging_api: true` has an explicit `timeout_ms` (no validator covers this — confirm by running `jq -r '.proposal.specs[].api_collections[].apis[] | select(.category.hanging_api == true and (.timeout_ms // null) == null) | .name' specs/testnet-2/specs/<chain>.json` and confirming the output is empty)
+- Every API with `category.hanging_api: true` has an explicit `timeout_ms` (no validator covers this — confirm by running `jq -r '.proposal.specs[].api_collections[].apis[] | select(.category.hanging_api == true and (.timeout_ms // null) == null) | .name' <chain>.json` and confirming the output is empty)
 - `category.stateful` is set only on broadcast / state-modifying methods (read methods must have `stateful: 0` or unset; no validator enforces direction — spot-check the spec's stateful methods against the chain's docs)
 
 For the chain-id curl step, run this for both mainnet and testnet:
@@ -292,7 +292,7 @@ Capture the returned hex value VERBATIM into the spec's `verifications[].values[
 For each spec entry: `archive` extension, `pruning` verification, and `GET_EARLIEST_BLOCK` parse_directive are an indivisible triplet — all present or all absent. The canonical structure of each lives in `references/phase3.4-parse-directives-and-extensions.md`.
 
 ```bash
-CAND=specs/testnet-2/specs/<chain>.json
+CAND=<chain>.json
 jq '.proposal.specs[] | {
   index,
   archive_ext:        ([.api_collections[].extensions[]?.name] | contains(["archive"])),
@@ -318,7 +318,7 @@ Read each validator agent prompt fully (full-read with sentinel verification) be
 - `.claude/skills/create-spec/references/agents/method-schema-validator.md` (observe `END-OF-METHOD-SCHEMA-VALIDATOR-SENTINEL`)
 
 Gather inputs:
-- `<spec_path>` — `specs/testnet-2/specs/<chain>.json`
+- `<spec_path>` — `<chain>.json`
 - `<chain>` — lowercased chain name (filename stem)
 - `<INDEX>` — spec index UPPERCASE
 - `<api_interface>` — from the spec's primary `api_collections[].collection_data.api_interface`
@@ -362,7 +362,7 @@ A gate's `RESULT: FAIL` (cu-semantic Layer-0 subscription-CU violation or Layer-
 1. Print to the user the aggregated report — one section per failed gate, with the `=== GATE: <name> ===` block from that subagent's response.
 2. Dispatch one `general-purpose` fixer subagent (`model: "sonnet"`) with the deduplicated FAIL list. Prompt:
 
-   > You are fixing a Lava blockchain spec. Read `specs/testnet-2/specs/<chain>.json` and the deduplicated FAIL list below from Phase 6's parallel-gate run. Apply EVERY listed fix in one pass. Do not touch any field not mentioned in the FAIL list. Do not refactor, reformat, or improve adjacent fields.
+   > You are fixing a Lava blockchain spec. Read `<chain>.json` and the deduplicated FAIL list below from Phase 6's parallel-gate run. Apply EVERY listed fix in one pass. Do not touch any field not mentioned in the FAIL list. Do not refactor, reformat, or improve adjacent fields.
    >
    > [paste deduplicated FAIL list with the per-gate sections from the parallel-gate reports]
    >
@@ -375,7 +375,7 @@ A gate's `RESULT: FAIL` (cu-semantic Layer-0 subscription-CU violation or Layer-
 3. After the fixer returns, validate JSON again:
 
    ```bash
-   jq . specs/testnet-2/specs/<chain>.json > /dev/null
+   jq . <chain>.json > /dev/null
    echo "jq exit: $?"
    ```
 
@@ -385,7 +385,7 @@ A gate's `RESULT: FAIL` (cu-semantic Layer-0 subscription-CU violation or Layer-
 
 ## Phase 7 — Write & autonomous jq validation
 
-Write the single file `specs/testnet-2/specs/<chain>.json` using the Write tool. The file structure must match `specs/testnet-2/specs/iota.json`:
+Write the single file `<chain>.json` using the Write tool. The file structure must match `iota.json`:
 
 ```json
 {
@@ -406,49 +406,51 @@ Write the single file `specs/testnet-2/specs/<chain>.json` using the Write tool.
 Then run `jq` autonomously and report the result:
 
 ```bash
-jq . specs/testnet-2/specs/<chain>.json > /dev/null
+jq . <chain>.json > /dev/null
 echo "jq exit: $?"
 ```
 
 If exit is non-zero, capture the error excerpt:
 
 ```bash
-jq . specs/testnet-2/specs/<chain>.json 2>&1 | head -n 20
+jq . <chain>.json 2>&1 | head -n 20
 ```
 
 Fix the JSON and re-run until exit 0. Do not proceed to Phase 8 until `jq` exits 0.
 
-## Phase 8 — Local provider boot + multi-node method probe (delegated subagent)
+## Phase 8 — Smart-router boot + multi-node method probe (delegated subagent)
 
-This phase is delegated to a single `general-purpose` subagent so the orchestrator's context does not have to absorb 5–15 minutes of build/boot/probe output. You (the orchestrator) do NOT execute the boot script, write the provider config, or run probes yourself — you only dispatch and collect the result.
+This phase boots the candidate spec inside a dockerized **smart-router** (`ghcr.io/magma-devs/smart-router:main`) and probes every method through it. There is NO local lava node, NO gov proposal, and NO provider/consumer `screen` sessions — the smart-router loads the spec graph statically (`--use-static-spec`) and relays to the chain's public RPC upstreams, so a boot is seconds-to-a-minute. It is delegated to a single `general-purpose` subagent so the orchestrator's context stays free of boot/probe output. You (the orchestrator) do NOT run docker, write the router config, or run probes yourself — you only dispatch and collect the result.
 
 **Inputs to gather before dispatch** (from earlier phases — do NOT re-research):
 - `<chain>` — lowercased chain name (filename stem, e.g., `iota`)
-- `<INDEX>` — spec index UPPERCASE (e.g., `IOTA`)
+- `<INDEX>` — spec index UPPERCASE (e.g., `IOTA`) — must match the spec's `proposal.specs[].index`
 - `<INTERFACE>` — `jsonrpc` | `rest` | `grpc` | `tendermintrpc` (the spec's `api_collections[].collection_data.api_interface`)
 - `<NODE_URL_1>` (required), `<NODE_URL_2>`, `<NODE_URL_3>` (optional) — 1–3 public node URLs (https://… or wss://…) — from Phase 2 or chain-metadata-researcher. At least one is required to boot.
-- `<WS_URL>` (optional) — separate WebSocket URL if not already in the URL list
+- `<WS_URL>` (optional in general, **REQUIRED for any spec with subscription methods** — e.g. an EVM chain inheriting `eth_subscribe` from ETH1) — a `ws://`/`wss://` URL. The smart-router excludes any provider that lacks a ws upstream for a subscription-enabled chain, and refuses to boot once all providers are excluded (`all static providers failed verification — cannot serve endpoint`). If the chain has subscriptions and no ws URL is available, gather one before Phase 8 or the boot fails.
 - `<EXTRA_INTERFACES>` (optional) — additional `(INTERFACE, urls)` blocks for multi-interface chains (Cosmos)
 
-**Boot is mandatory whenever at least one node URL is available.** Boot and probe with however many URLs you have (1, 2, or 3) — the boot itself catches spec-level defects (e.g. a result_parsing bug that blocks provider startup) that the static gates cannot see, so a single URL is worth booting. The orchestrator must not invent URLs.
+**Boot is mandatory whenever at least one node URL is available.** Boot and probe with however many URLs you have (1, 2, or 3) — the router's startup spec resolution + upstream verification catches spec-level defects (e.g. a result_parsing bug or a wrong chain-id `expected_value` that blocks startup) that the static gates cannot see, so a single URL is worth booting. The orchestrator must not invent URLs.
 
 If ZERO node URLs are available, do NOT silently skip: **STOP and ask the user to supply at least one node URL** before proceeding. Only skip Phase 8 with explicit user consent; if the user consents to skipping, note it in the Phase 12 checklist.
 
-**Read the subagent prompt fully** before dispatch:
-- `.claude/skills/create-spec/references/agents/local-provider-tester.md` (observe `END-OF-LOCAL-PROVIDER-TESTER-SENTINEL`)
+**Docker + GHCR access:** the image is private. In CI, a `docker/login-action` step (`${{ github.actor }}` + `${{ secrets.GITHUB_TOKEN }}`) logs in before this phase. Locally, the runner must already be logged in to `ghcr.io` with a token carrying the `read:packages` scope (`gh auth token | docker login ghcr.io -u "$(gh api user -q .login)" --password-stdin`). The subagent auto-detects `docker` vs `sudo docker`. If the image pull fails on auth, the subagent returns `SMOKE: BOOT_FAILED` — surface it and STOP.
 
-**Dispatch ONE Agent subagent** with `subagent_type: general-purpose` (no `isolation` parameter — the subagent operates on the live working tree, since the candidate spec is uncommitted). Pass the prompt with all placeholders substituted. Use the Bash tool's `run_in_background` semantics inside the subagent — but the subagent itself runs in the foreground from your point of view (you wait for its single return).
+**Read the subagent prompt fully** before dispatch:
+- `.claude/skills/create-spec/references/agents/smart-router-tester.md` (observe `END-OF-SMART-ROUTER-TESTER-SENTINEL`)
+
+**Dispatch ONE Agent subagent** with `subagent_type: general-purpose` (no `isolation` parameter — the subagent operates on the live working tree, since the candidate spec is uncommitted). Pass the prompt with all placeholders substituted. The subagent runs in the foreground from your point of view (you wait for its single return).
 
 ```
-Agent(description: "Boot local provider + probe methods for <chain>",
+Agent(description: "Boot smart-router + probe methods for <chain>",
       subagent_type: "general-purpose",
       model: "sonnet",
-      prompt: <local-provider-tester.md with placeholders substituted>)
+      prompt: <smart-router-tester.md with placeholders substituted>)
 ```
 
-When the subagent returns, it reports a short summary (counts including `LOG_WARN` + FAIL/TIMEOUT method names + any methods downgraded to WARN by the probe-window log scan + teardown status) and the path to `specs/docs/<chain>/METHOD_PROBE_REPORT.md`. Read the report from disk if you need detail — do not ask the subagent to echo it back. Carry the log-scan WARNs into the Phase 9 reviewers and the Phase 10 fix list, the same as FAIL methods.
+When the subagent returns, it reports a short summary (counts including `LOG_WARN` + FAIL/TIMEOUT method names + any methods downgraded to WARN by the probe-window log scan + teardown status) and the path to `docs/<chain>/METHOD_PROBE_REPORT.md`. Read the report from disk if you need detail — do not ask the subagent to echo it back. Carry the log-scan WARNs into the Phase 9 reviewers and the Phase 10 fix list, the same as FAIL methods.
 
-If the subagent reports `SMOKE: BOOT_FAILED` or otherwise indicates the provider could not boot, present the error to the user and STOP. Do not proceed to Phase 9.
+If the subagent reports `SMOKE: BOOT_FAILED` or otherwise indicates the router could not boot, present the error to the user and STOP. Do not proceed to Phase 9.
 
 If the subagent reports clean teardown and a populated report, proceed to Phase 9.
 
@@ -459,35 +461,35 @@ If the subagent reports clean teardown and a populated report, proceed to Phase 
 **Before dispatching:** clear any prior parallel-review report files so the reviewers start clean:
 
 ```bash
-mkdir -p specs/docs/<chain>
-rm -f specs/docs/<chain>/SPEC_REVIEW_GAPS.md
-rm -f specs/docs/<chain>/SPEC_REVIEW_GAPS_parallel_*.md
+mkdir -p docs/<chain>
+rm -f docs/<chain>/SPEC_REVIEW_GAPS.md
+rm -f docs/<chain>/SPEC_REVIEW_GAPS_parallel_*.md
 ```
 
 Dispatch THREE Agent subagents in parallel via a SINGLE message, each with `subagent_type: general-purpose`, `model: "sonnet"` (bump to `opus` if reviews miss issues on hard chains), and NO `isolation` parameter. Each subagent receives an `N` value (1, 2, or 3) so it knows which numbered output file to write. The prompt for reviewer N:
 
 > You are reviewing a Lava blockchain spec. Your reviewer index is **N** (used in the output filename below).
 >
-> Run the `/review-spec` skill on `specs/testnet-2/specs/<chain>.json`. Pass through `$ARGUMENTS[1]` (API docs path, may be empty) and `$ARGUMENTS[2]` (credentials path, may be empty).
+> Run the `/review-spec` skill on `<chain>.json`. Pass through `$ARGUMENTS[1]` (API docs path, may be empty) and `$ARGUMENTS[2]` (credentials path, may be empty).
 >
-> Before running `/review-spec`, read `specs/docs/<chain>/METHOD_PROBE_REPORT.md` if it exists and incorporate the probe findings into your review (especially any FAIL or WARN classifications).
+> Before running `/review-spec`, read `docs/<chain>/METHOD_PROBE_REPORT.md` if it exists and incorporate the probe findings into your review (especially any FAIL or WARN classifications).
 >
-> `/review-spec` writes its report to the hard-coded path `specs/docs/<chain>/SPEC_REVIEW_GAPS.md`. **As the LAST step of your work — immediately after `/review-spec` returns** — rename that file to a unique numbered path so the other parallel reviewers do not clobber it:
+> `/review-spec` writes its report to the hard-coded path `docs/<chain>/SPEC_REVIEW_GAPS.md`. **As the LAST step of your work — immediately after `/review-spec` returns** — rename that file to a unique numbered path so the other parallel reviewers do not clobber it:
 >
 > ```bash
-> mv -n specs/docs/<chain>/SPEC_REVIEW_GAPS.md specs/docs/<chain>/SPEC_REVIEW_GAPS_parallel_N.md
+> mv -n docs/<chain>/SPEC_REVIEW_GAPS.md docs/<chain>/SPEC_REVIEW_GAPS_parallel_N.md
 > ```
 >
 > Use `mv -n` (no clobber) — if the destination already exists, the move fails rather than overwriting another reviewer's work. After the `mv`, verify it succeeded:
 >
 > ```bash
-> test -f specs/docs/<chain>/SPEC_REVIEW_GAPS_parallel_N.md && echo "RENAMED_OK" || echo "RENAMED_FAIL"
+> test -f docs/<chain>/SPEC_REVIEW_GAPS_parallel_N.md && echo "RENAMED_OK" || echo "RENAMED_FAIL"
 > ```
 >
 > If the rename failed (destination already existed OR source didn't exist because another reviewer's parallel write clobbered yours), retry your `/review-spec` invocation once. Then attempt the rename again.
 >
 > Return:
-> 1. The FULL contents of `specs/docs/<chain>/SPEC_REVIEW_GAPS_parallel_N.md` as the body of your response.
+> 1. The FULL contents of `docs/<chain>/SPEC_REVIEW_GAPS_parallel_N.md` as the body of your response.
 > 2. On the LAST line of your response, print exactly: `TALLY: CRITICAL=<X> MEDIUM=<Y> MINOR=<Z>` with integer counts.
 >
 > Do not print anything after the TALLY line.
@@ -497,15 +499,15 @@ After all three subagents return, in the primary working tree:
 1. Parse each subagent's TALLY line. If any TALLY is missing or unparseable, abort and report which reviewer.
 2. Verify all three files exist:
    ```bash
-   ls -la specs/docs/<chain>/SPEC_REVIEW_GAPS_parallel_{1,2,3}.md
+   ls -la docs/<chain>/SPEC_REVIEW_GAPS_parallel_{1,2,3}.md
    ```
    If any are missing, the race-condition rename failed for that reviewer. Re-dispatch JUST the missing reviewer index and wait for it to complete (sequential at this point — collision risk is gone because only one reviewer is running).
 3. The reports are now on disk at their numbered paths; no further extraction needed.
 
-**Sanity check after collection:** if any reviewer reports CRITICAL findings whose `evidence_line_number` exceeds the actual line count of `specs/testnet-2/specs/<chain>.json`, that reviewer reviewed stale state — likely because the candidate file was modified after the reviewer started. Note the discrepancy to the user and either re-dispatch that one reviewer, or treat its findings as advisory rather than authoritative. Verify with:
+**Sanity check after collection:** if any reviewer reports CRITICAL findings whose `evidence_line_number` exceeds the actual line count of `<chain>.json`, that reviewer reviewed stale state — likely because the candidate file was modified after the reviewer started. Note the discrepancy to the user and either re-dispatch that one reviewer, or treat its findings as advisory rather than authoritative. Verify with:
 
 ```bash
-wc -l specs/testnet-2/specs/<chain>.json
+wc -l <chain>.json
 ```
 
 ## Phase 10 — Synthesize gaps + single fix pass
@@ -515,12 +517,12 @@ Read all three parallel-reviewer reports. Build a deduplicated list of CRITICAL 
 Snapshot the spec before fixing:
 
 ```bash
-cp specs/testnet-2/specs/<chain>.json /tmp/spec_<chain>_pre_fix.json
+cp <chain>.json /tmp/spec_<chain>_pre_fix.json
 ```
 
 Dispatch one `general-purpose` Agent subagent (`model: "sonnet"`, no worktree needed — main filesystem) with this prompt:
 
-> You are fixing a Lava blockchain spec. Read `specs/testnet-2/specs/<chain>.json` and the deduplicated gap list below. Apply EVERY listed CRITICAL and MEDIUM fix in one pass. Do not touch any field not mentioned in the gap list. Do not refactor, reformat, or improve adjacent fields.
+> You are fixing a Lava blockchain spec. Read `<chain>.json` and the deduplicated gap list below. Apply EVERY listed CRITICAL and MEDIUM fix in one pass. Do not touch any field not mentioned in the gap list. Do not refactor, reformat, or improve adjacent fields.
 >
 > [paste deduplicated gap list with file:line citations and recommended values]
 >
@@ -530,7 +532,7 @@ Dispatch one `general-purpose` Agent subagent (`model: "sonnet"`, no worktree ne
 After the fixer returns, validate JSON again:
 
 ```bash
-jq . specs/testnet-2/specs/<chain>.json > /dev/null
+jq . <chain>.json > /dev/null
 echo "jq exit: $?"
 ```
 
@@ -538,20 +540,20 @@ If exit non-zero: outcome = `BROKEN_AFTER_FIX`. Present the snapshot path (`/tmp
 
 ## Phase 10b — Smoke regression test (delegated subagent)
 
-Same delegation pattern as Phase 8 — a single `general-purpose` subagent re-boots the local provider against the FIXED spec on disk and re-probes a deterministic minimal set to detect regressions. The orchestrator does NOT execute the boot script or compare classifications inline.
+Same delegation pattern as Phase 8 — a single `general-purpose` subagent re-boots the dockerized smart-router against the FIXED spec on disk and re-probes a deterministic minimal set to detect regressions. The orchestrator does NOT run docker or compare classifications inline.
 
 Skip this phase entirely only if Phase 8 was skipped (i.e. the user explicitly consented to skipping when zero node URLs were available).
 
 **Read the subagent prompt fully** before dispatch:
-- `.claude/skills/create-spec/references/agents/local-provider-smoke-tester.md` (observe `END-OF-LOCAL-PROVIDER-SMOKE-TESTER-SENTINEL`)
+- `.claude/skills/create-spec/references/agents/smart-router-smoke-tester.md` (observe `END-OF-SMART-ROUTER-SMOKE-TESTER-SENTINEL`)
 
-**Dispatch ONE Agent subagent** with `subagent_type: general-purpose` and no `isolation`. Substitute the same `<chain>` / `<INDEX>` / `<INTERFACE>` / node URLs used in Phase 8, and pass the Phase 8 report path (`specs/docs/<chain>/METHOD_PROBE_REPORT.md`) plus the deduplicated Phase 10 fix list (so the smoke tester can suggest a plausible culprit on regression).
+**Dispatch ONE Agent subagent** with `subagent_type: general-purpose` and no `isolation`. Substitute the same `<chain>` / `<INDEX>` / `<INTERFACE>` / node URLs used in Phase 8, and pass the Phase 8 report path (`docs/<chain>/METHOD_PROBE_REPORT.md`) plus the deduplicated Phase 10 fix list (so the smoke tester can suggest a plausible culprit on regression).
 
 ```
 Agent(description: "Smoke re-test fixed spec for <chain>",
       subagent_type: "general-purpose",
       model: "sonnet",
-      prompt: <local-provider-smoke-tester.md with placeholders substituted>)
+      prompt: <smart-router-smoke-tester.md with placeholders substituted>)
 ```
 
 When the subagent returns, expect one of:
@@ -563,34 +565,34 @@ When the subagent returns, expect one of:
 
 **Do NOT use `isolation: "worktree"`** — same reason as Phase 9. The candidate spec is uncommitted, so a worktree reviewer would see stale HEAD state. Fresh-subagent-context alone provides the anchoring isolation we need.
 
-Before invoking the final reviewer, archive prior reports so the reviewer's `/review-spec` skill (Phase 1 of which scans `specs/docs/<CHAIN_NAME>/`) does not pick them up as anchoring. Also remove any stale `SPEC_REVIEW_GAPS.md` (without the `_parallel_N` suffix) that might be lingering:
+Before invoking the final reviewer, archive prior reports so the reviewer's `/review-spec` skill (Phase 1 of which scans `docs/<CHAIN_NAME>/`) does not pick them up as anchoring. Also remove any stale `SPEC_REVIEW_GAPS.md` (without the `_parallel_N` suffix) that might be lingering:
 
 ```bash
-mkdir -p specs/docs/<chain>/_archive
-mv specs/docs/<chain>/SPEC_REVIEW_GAPS_parallel_*.md specs/docs/<chain>/_archive/ 2>/dev/null || true
-mv specs/docs/<chain>/SPEC_REVIEW_FIXES_*.md specs/docs/<chain>/_archive/ 2>/dev/null || true
-rm -f specs/docs/<chain>/SPEC_REVIEW_GAPS.md
+mkdir -p docs/<chain>/_archive
+mv docs/<chain>/SPEC_REVIEW_GAPS_parallel_*.md docs/<chain>/_archive/ 2>/dev/null || true
+mv docs/<chain>/SPEC_REVIEW_FIXES_*.md docs/<chain>/_archive/ 2>/dev/null || true
+rm -f docs/<chain>/SPEC_REVIEW_GAPS.md
 ```
 
 Dispatch ONE Agent subagent with `subagent_type: general-purpose`, `model: "sonnet"` (bump to `opus` if the final pass misses issues), and no `isolation` parameter. The prompt:
 
 > You are reviewing a Lava blockchain spec — final pass after fixes were applied.
 >
-> Run the `/review-spec` skill on `specs/testnet-2/specs/<chain>.json`. Pass through `$ARGUMENTS[1]` and `$ARGUMENTS[2]`.
+> Run the `/review-spec` skill on `<chain>.json`. Pass through `$ARGUMENTS[1]` and `$ARGUMENTS[2]`.
 >
-> Before running `/review-spec`, read `specs/docs/<chain>/METHOD_PROBE_REPORT.md` if it exists.
+> Before running `/review-spec`, read `docs/<chain>/METHOD_PROBE_REPORT.md` if it exists.
 >
-> `/review-spec` writes its report to `specs/docs/<chain>/SPEC_REVIEW_GAPS.md`. After it returns, rename to a final-pass-specific path:
+> `/review-spec` writes its report to `docs/<chain>/SPEC_REVIEW_GAPS.md`. After it returns, rename to a final-pass-specific path:
 >
 > ```bash
-> mv specs/docs/<chain>/SPEC_REVIEW_GAPS.md specs/docs/<chain>/SPEC_REVIEW_GAPS_final.md
+> mv docs/<chain>/SPEC_REVIEW_GAPS.md docs/<chain>/SPEC_REVIEW_GAPS_final.md
 > ```
 >
 > Return:
-> 1. The FULL contents of `specs/docs/<chain>/SPEC_REVIEW_GAPS_final.md` as the body of your response.
+> 1. The FULL contents of `docs/<chain>/SPEC_REVIEW_GAPS_final.md` as the body of your response.
 > 2. On the LAST line of your response, print exactly: `TALLY: CRITICAL=<X> MEDIUM=<Y> MINOR=<Z>` with integer counts.
 
-**Sanity check (same as Phase 9):** if the reviewer reports CRITICAL findings whose `evidence_line_number` exceeds the actual line count of `specs/testnet-2/specs/<chain>.json`, the reviewer reviewed stale state. Re-dispatch once.
+**Sanity check (same as Phase 9):** if the reviewer reports CRITICAL findings whose `evidence_line_number` exceeds the actual line count of `<chain>.json`, the reviewer reviewed stale state. Re-dispatch once.
 
 Outcomes:
 - TALLY shows `CRITICAL=0 MEDIUM=0` → **APPROVED**. Proceed to Phase 12.
@@ -615,7 +617,7 @@ If a phase was skipped (e.g., Phase 8 skipped because user didn't supply node UR
 
 #### Configuration Verification
 - ✓ Network parameters calculated per formulas           (Phase 4 calculations table)
-- ~ All APIs tested and working                          (Phase 8 probe — see specs/docs/<chain>/METHOD_PROBE_REPORT.md; stateful methods skipped)
+- ~ All APIs tested and working                          (Phase 8 probe — see docs/<chain>/METHOD_PROBE_REPORT.md; stateful methods skipped)
 - ~ Block parsing validated for each API                 (Phase 8 existence-tested; full parse validation requires production traffic)
 - ✓ Verifications pass on live nodes                     (Phase 6 chain-id curl + Phase 8 multi-node probe)
 - ☐ Compute units benchmarked under expected load        (user to measure)
@@ -653,8 +655,8 @@ After printing, terminate the skill. The user takes it from here (manual git ope
 
 ## Out of scope
 
-- Writing to `specs/mainnet-1/specs/` or `specs/testnet-1/specs/` — testnet-2 only
-- Creating `specs/docs/<chain>/` documentation files beyond the probe and review reports the skill emits during its own run
+- Writing anywhere other than the single `<chain>.json` at the repo root — do not create subdirectories for specs
+- Creating `docs/<chain>/` documentation files beyond the probe and review reports the skill emits during its own run
 - Creating governance proposal JSONs or `PROPOSAL_DESCRIPTION.md`
 - Any git operations: `git add`, `git commit`, `git push`, `git checkout`, `glab mr create`. User handles all git manually.
 
