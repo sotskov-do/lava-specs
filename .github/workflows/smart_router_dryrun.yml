@@ -71,9 +71,22 @@ jobs:
           password: ${{ secrets.GHCR_PAT || secrets.GITHUB_TOKEN }}
 
       - name: Pull smart-router image
+        env:
+          # Boolean only — never the secret value. true ⇒ GHCR_PAT was used for
+          # login; false ⇒ the GITHUB_TOKEN fallback was used.
+          HAS_PAT: ${{ secrets.GHCR_PAT != '' }}
         run: |
+          echo "Auth source: GHCR_PAT present = ${HAS_PAT}  (false ⇒ logged in with GITHUB_TOKEN)"
           echo "Pulling $IMAGE ..."
-          docker pull "$IMAGE"
+          if ! docker pull "$IMAGE"; then
+            echo "::error::Pull DENIED — the credential used has no read access to ${IMAGE}."
+            if [ "${HAS_PAT}" != "true" ]; then
+              echo "::error::GHCR_PAT secret is NOT set, so the built-in GITHUB_TOKEN was used. A personal fork's GITHUB_TOKEN cannot pull another org's private package. Fix: add a repo secret GHCR_PAT = classic PAT with read:packages, SSO-authorized for Magma-Devs, owned by an account that can read the smart-router package."
+            else
+              echo "::error::GHCR_PAT IS set but pull was still denied. Check: (1) it is a CLASSIC PAT (not fine-grained) with the read:packages scope; (2) it is SSO-authorized for the Magma-Devs org (token list -> Configure SSO -> Authorize); (3) the owning account actually has read access to the Magma-Devs/smart-router package."
+            fi
+            exit 1
+          fi
           docker image inspect "$IMAGE" --format 'Pulled: {{.RepoTags}} (digest {{index .RepoDigests 0}})'
 
       - name: Stage specs + write router config

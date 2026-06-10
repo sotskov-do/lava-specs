@@ -158,11 +158,23 @@ jobs:
       # boot + method probe is exercised by Phase 8 itself (and standalone by
       # smart_router_dryrun.yml); here we only confirm the image pulls and runs.
       - name: Pull + probe smart-router image (pre-flight)
+        env:
+          # Boolean only — never the secret value. false ⇒ GITHUB_TOKEN fallback.
+          HAS_PAT: ${{ secrets.GHCR_PAT != '' }}
         run: |
           set -euo pipefail
           IMAGE=ghcr.io/magma-devs/smart-router:main
+          echo "Auth source: GHCR_PAT present = ${HAS_PAT}  (false ⇒ logged in with GITHUB_TOKEN)"
           echo "Pulling $IMAGE ..."
-          docker pull "$IMAGE"
+          if ! docker pull "$IMAGE"; then
+            echo "::error::Pull DENIED — the credential used has no read access to ${IMAGE}."
+            if [ "${HAS_PAT}" != "true" ]; then
+              echo "::error::GHCR_PAT secret is NOT set; the built-in GITHUB_TOKEN was used. A personal fork's GITHUB_TOKEN cannot pull another org's private package. Add a repo secret GHCR_PAT = classic PAT with read:packages, SSO-authorized for Magma-Devs."
+            else
+              echo "::error::GHCR_PAT IS set but pull was still denied. Verify it is a CLASSIC PAT with read:packages, SSO-authorized for Magma-Devs, owned by an account with read access to the smart-router package."
+            fi
+            exit 1
+          fi
           docker image inspect "$IMAGE" --format 'Pulled OK: {{index .RepoDigests 0}}'
           # Probe that the image actually executes (no config/specs/network
           # needed). Run with no args + a short timeout: the entrypoint prints
