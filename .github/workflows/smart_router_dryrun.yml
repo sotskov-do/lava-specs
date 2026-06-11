@@ -214,23 +214,58 @@ jobs:
             jsonrpc|tendermintrpc) ;;
             *) echo "Skipping metric check for api-interface=$API_INTERFACE"; exit 0 ;;
           esac
-          echo "Polling lava_rpcsmartrouter_latest_block (max 60s)..."
+
+          # Ground truth: ask the router for the live height the same way the
+          # tracker should. For the eth_blockNumber default this is a hex result;
+          # convert to decimal. If we can't derive it (non-eth method), fall back
+          # to a weaker "metric must be positive" check and say so.
+          truth=""
+          th="$(curl -s -m 10 -X POST http://localhost:3360 \
+                  -H 'content-type: application/json' \
+                  -d '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' 2>/dev/null \
+                | jq -r '.result // empty')"
+          case "$th" in 0x*|0X*) truth=$((th)) ;; esac
+
+          # Read the metric robustly: match ONLY the latest_block gauge (with or
+          # without label set), take the LAST field as the value (handles
+          # `name{labels} value`), coerce any float/sci-notation to an integer
+          # (%.0f), and take the MAX across series so a sibling counter like
+          # `..._latest_block_updates 2` can never shadow the real height.
+          read_height() {
+            curl -s -m 3 http://localhost:7779/metrics \
+              | grep -E '^lava_rpcsmartrouter_latest_block([ {]|$)' \
+              | awk '{printf "%.0f\n", $NF}' | sort -n | tail -1
+          }
+
+          echo "Polling lava_rpcsmartrouter_latest_block (max 60s; ground-truth height=${truth:-unknown})..."
           blk=""
           for _ in $(seq 1 20); do
-            m="$(curl -s -m 3 http://localhost:7779/metrics \
-                  | grep -E '^lava_rpcsmartrouter_latest_block' | awk '{print $2}' | head -1)"
-            # strip any decimal/exponent suffix the metric may carry
-            m="${m%%.*}"
-            if [ -n "$m" ] && [ "$m" -gt 0 ] 2>/dev/null; then blk="$m"; break; fi
+            m="$(read_height)"; m="${m:-0}"
+            if [ "$m" -gt 0 ] 2>/dev/null; then
+              if [ -n "$truth" ]; then
+                d=$(( truth > m ? truth - m : m - truth ))
+                # within 5000 blocks of the live chain → the directive tracks reality
+                if [ "$d" -le 5000 ]; then blk="$m"; break; fi
+              else
+                blk="$m"; break
+              fi
+            fi
             sleep 3
           done
+
           if [ -z "$blk" ]; then
+            echo "----- latest_block metric lines -----"
+            curl -s -m 3 http://localhost:7779/metrics | grep -E 'latest_block' || echo "(none)"
             echo "----- router logs (tail) -----"
             docker logs --tail 80 sr_dryrun 2>&1 || true
-            echo "::error::Chain tracker never reported a latest block (metric absent or 0). The GET_BLOCKNUM parse directive is likely broken (wrong template, parser_func, parser_arg, or encoding), OR every upstream failed to serve it."
+            if [ -n "$truth" ]; then
+              echo "::error::Chain tracker latest_block never reached the live height (~${truth}). GET_BLOCKNUM is likely broken (wrong template/parser_func/parser_arg/encoding) or no upstream served it — a wrong value like 2 fails here instead of passing."
+            else
+              echo "::error::Chain tracker never reported a positive latest_block. GET_BLOCKNUM likely broken, or no upstream served it."
+            fi
             exit 1
           fi
-          echo "GET_BLOCKNUM healthy: lava_rpcsmartrouter_latest_block=$blk"
+          echo "GET_BLOCKNUM healthy: tracked latest_block=$blk (ground-truth=${truth:-unknown})"
 
       - name: Probe one method
         run: |
