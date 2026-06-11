@@ -159,7 +159,12 @@ jobs:
             "$IMAGE" \
             sr.yml --geolocation 1 --use-static-spec specs/ --log-level debug --log-format json
 
-          FATAL='panic|fatal|failed to (load|expand|resolve) spec|verification failed|failed verification|cannot serve endpoint|no matching spec'
+          # Only genuinely fatal lines abort. Per-provider "failed verification
+          # on provider startup" is NOT fatal — the router still boots and serves
+          # if at least one provider passes (a pruned/whitelist upstream failing
+          # one verification must not fail the dry run). This mirrors the Phase-8
+          # tester's fail-fast set exactly.
+          FATAL='panic|fatal|failed to (load|expand|resolve) spec|all static providers failed verification|cannot serve endpoint|no matching spec'
           echo "Waiting for the listener (max 120s)..."
           ok=""; fatal=""
           for _ in $(seq 1 60); do

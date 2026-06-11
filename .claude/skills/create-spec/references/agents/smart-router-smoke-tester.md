@@ -17,15 +17,17 @@ This is the same dockerized smart-router flow as Phase 8 (`smart-router-tester`)
 - `<SPEC_VARIANTS>` (optional) — additional `(INDEX, INTERFACE)` pairs to re-probe if the chain has multiple variants
 - `<PHASE_10_FIX_LIST>` (optional) — the deduplicated fix list applied in Phase 10, so you can name a plausible culprit on regression
 
-## Step 0 — Resolve docker + authenticate to GHCR
+## Step 0 — Resolve docker (image is already authenticated + pulled)
 
-Identical to Phase 8 Step 0:
+Identical to Phase 8 Step 0. The image is already pulled and cached on this host (the workflow logs in + pulls in a pre-flight step); GHCR auth is NOT your job.
 
 ```bash
 DOCKER="docker"; $DOCKER info >/dev/null 2>&1 || DOCKER="sudo docker"
 IMAGE="ghcr.io/magma-devs/smart-router:main"
-$DOCKER pull "$IMAGE"   # CI: docker/login-action handles GHCR auth; local: gh auth token | $DOCKER login ghcr.io ...
+$DOCKER image inspect "$IMAGE" >/dev/null 2>&1 || $DOCKER pull "$IMAGE"
 ```
+
+**Forbidden (same as Phase 8):** never run `env`/`printenv`, never grep the environment for `TOKEN`/`PAT`/`SECRET`, never read `event.json`, never call `docker login` or request/print a GHCR token. If the image is truly missing and the pull fails, STOP and return `SMOKE: BOOT_FAILED` with only the docker error line.
 
 ## Step 1 — Re-assemble specs + re-boot the router
 

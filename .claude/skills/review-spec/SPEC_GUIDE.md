@@ -1825,7 +1825,7 @@ git checkout -b add-spec-chainname
 2. **Add your spec files**
 ```bash
 # Add spec proposal
-cp /path/to/chainname.json specs/undeployed/chainname.json
+cp /path/to/chainname.json chainname.json
 
 # Add documentation
 mkdir -p specs/docs/CHAINNAME
@@ -1837,7 +1837,7 @@ cp /path/to/docs/* specs/docs/CHAINNAME/
 
 3. **Commit changes**
 ```bash
-git add specs/undeployed/chainname.json
+git add chainname.json
 git add specs/docs/CHAINNAME/
 git commit -m "Add specification for [Chain Name]
 
@@ -1860,7 +1860,7 @@ git push origin add-spec-chainname
 This PR adds support for [Chain Name] to Lava Network.
 
 ## Changes
-- Added spec file: `specs/undeployed/chainname.json`
+- Added spec file: `chainname.json`
 - Added documentation in `specs/docs/CHAINNAME/`
 - Includes [X] APIs ([Y] standard, [Z] chain-specific)
 
@@ -1886,7 +1886,7 @@ This PR adds support for [Chain Name] to Lava Network.
 **Command**:
 ```bash
 lavad tx gov submit-legacy-proposal spec-add \
-  "specs/undeployed/chainname.json" \
+  "chainname.json" \
   -y \
   --from "YOUR_ACCOUNT_NAME" \
   --gas-adjustment "1.5" \
@@ -1919,12 +1919,9 @@ lavad query gov votes [PROPOSAL_ID] --chain-id "lava-mainnet-1"
 
 **Once Proposal Passes**:
 
-1. **Update File Locations**:
-```bash
-# Move from undeployed to mainnet-1
-git mv specs/undeployed/chainname.json specs/mainnet-1/specs/chainname.json
-git commit -m "Move [Chain Name] spec to mainnet-1 after governance approval"
-```
+1. **File Location**: this repo is flat — the spec already lives at the repo
+   root as `<index-lowercased>.json` (e.g. `katana.json`). There is no
+   undeployed/mainnet-1 directory move; nothing to relocate after approval.
 
 2. **Update Documentation**:
    - Add deployment date to docs

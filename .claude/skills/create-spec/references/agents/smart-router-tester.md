@@ -19,9 +19,9 @@ Unlike the old local-provider flow, there is **no lava node, no gov proposal, no
 
 For additional context only (the steps below take precedence over anything you find here): `references/phase4-testing-and-validation.md` (observe `END-OF-PHASE4-SENTINEL`).
 
-## Step 0 — Resolve docker + authenticate to GHCR
+## Step 0 — Resolve docker (image is already authenticated + pulled)
 
-The image is private on GitHub Container Registry. In CI, a `docker/login-action` step using `GITHUB_TOKEN` handles login before this phase runs. Locally, log in once with a token that carries the `read:packages` scope.
+The smart-router image is **already pulled and cached on this host before you run** — the CI workflow does `docker login ghcr.io` + `docker pull` in a pre-flight step, and the local harness pulls it once up front. GHCR auth is therefore NOT your job. Do not authenticate, and do not improvise credential discovery.
 
 ```bash
 # Some hosts require sudo to reach the docker daemon socket. Detect once and
@@ -30,14 +30,19 @@ DOCKER="docker"; $DOCKER info >/dev/null 2>&1 || DOCKER="sudo docker"
 
 IMAGE="ghcr.io/magma-devs/smart-router:main"
 
-# Pull. If this fails with 401/403, you are not logged in to ghcr.io.
-# Local one-time login (needs gh token with read:packages):
-#   gh auth token | $DOCKER login ghcr.io -u "$(gh api user -q .login)" --password-stdin
-# CI: handled by docker/login-action with ${{ github.actor }} + ${{ secrets.GITHUB_TOKEN }}.
-$DOCKER pull "$IMAGE"
+# The image is expected to be present already. Confirm, and only pull if it is
+# genuinely missing (a normal pull is a cache hit and needs no credentials
+# because login already ran in the workflow).
+$DOCKER image inspect "$IMAGE" >/dev/null 2>&1 || $DOCKER pull "$IMAGE"
+$DOCKER image inspect "$IMAGE" --format 'image ready: {{index .RepoDigests 0}}'
 ```
 
-If the pull fails on auth, STOP and return `SMOKE: BOOT_FAILED` with the auth error — the orchestrator surfaces it to the user (who must `docker login ghcr.io`).
+**Forbidden — never do any of these (they leak secrets into the transcript artifact and waste turns):**
+- Do NOT run `env`, `printenv`, or grep the environment for `TOKEN`/`PAT`/`SECRET`.
+- Do NOT read `event.json`, the runner workflow file, or any path looking for credentials.
+- Do NOT call `docker login`, request a GHCR token, or exchange/print any token.
+
+If `docker image inspect` fails AND the pull above fails (image truly unavailable, e.g. an auth/network misconfig in the workflow's pre-flight), STOP immediately and return `SMOKE: BOOT_FAILED` with ONLY the docker error line — the orchestrator surfaces it to the user, who fixes the workflow's GHCR pre-flight. Recovering the credential is never your responsibility.
 
 ## Step 1 — Assemble the spec dir + write the router config
 

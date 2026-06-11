@@ -155,8 +155,9 @@ jobs:
       # Fail fast: pull (and sanity-probe) the smart-router image right after
       # login, so a GHCR access/auth misconfig surfaces in seconds instead of
       # ~1.5h into the agent run when Phase 8 first reaches for it. The full
-      # boot + method probe is exercised by Phase 8 itself (and standalone by
-      # smart_router_dryrun.yml); here we only confirm the image pulls and runs.
+      # boot + method probe is exercised by Phase 8 itself; here we only confirm
+      # the image pulls and runs. The pull also warms the local docker cache, so
+      # the agent's later `docker image inspect`/pull is a credential-free hit.
       - name: Pull + probe smart-router image (pre-flight)
         env:
           # Boolean only — never the secret value. false ⇒ GITHUB_TOKEN fallback.
@@ -351,6 +352,22 @@ jobs:
           git commit -m "feat(spec): add ${CHAIN_NAME} chain spec"
           git push origin "${{ steps.branch.outputs.name }}"
 
+      # Defense-in-depth: the agent is instructed never to dump the environment,
+      # but if a future run prints a token anyway (env, event.json, a JWT, etc.),
+      # this redaction keeps it out of the uploaded transcript. Scrubs known
+      # secret shapes in-place before the artifact is created.
+      - name: Redact secrets from transcript
+        if: always()
+        run: |
+          f="${{ steps.run.outputs.execution_file }}"
+          [ -f "$f" ] || { echo "no transcript to redact"; exit 0; }
+          perl -pi -e '
+            s/sk-ant-[a-z0-9]+-[A-Za-z0-9_-]+/sk-ant-REDACTED/g;
+            s/gh[posru]_[A-Za-z0-9]{20,}/ghx_REDACTED/g;
+            s/eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/JWT_REDACTED/g;
+          ' "$f"
+          echo "redaction pass complete"
+
       - name: Upload transcript artifact
         if: always()
         uses: actions/upload-artifact@v4
@@ -360,6 +377,7 @@ jobs:
             ${{ steps.run.outputs.execution_file }}
             pr_body.md
           if-no-files-found: warn
+          retention-days: 5
 
       - name: Open pull request
         env:
