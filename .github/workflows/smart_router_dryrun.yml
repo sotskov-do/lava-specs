@@ -197,6 +197,41 @@ jobs:
           fi
           echo "Listener is up."
 
+      # The listener answering proves the router boots and can RELAY requests,
+      # but a relayed eth_blockNumber does NOT exercise the spec's GET_BLOCKNUM
+      # parse directive — the chain tracker does. A spec with a broken
+      # GET_BLOCKNUM result_parsing would still pass the probe yet never track
+      # the chain. So assert the tracker actually fetched a height via the
+      # directive: lava_rpcsmartrouter_latest_block > 0. (The tracker may first
+      # burn a few retries on a wss-only upstream — "WebSocket SendRequest not
+      # implemented" — before recovering on the http upstream ~15s later; the
+      # poll below tolerates that.) Skipped for non-jsonrpc/tendermintrpc, whose
+      # metric shape differs.
+      - name: Check chain-tracker health (GET_BLOCKNUM)
+        run: |
+          set -uo pipefail
+          case "$API_INTERFACE" in
+            jsonrpc|tendermintrpc) ;;
+            *) echo "Skipping metric check for api-interface=$API_INTERFACE"; exit 0 ;;
+          esac
+          echo "Polling lava_rpcsmartrouter_latest_block (max 60s)..."
+          blk=""
+          for _ in $(seq 1 20); do
+            m="$(curl -s -m 3 http://localhost:7779/metrics \
+                  | grep -E '^lava_rpcsmartrouter_latest_block' | awk '{print $2}' | head -1)"
+            # strip any decimal/exponent suffix the metric may carry
+            m="${m%%.*}"
+            if [ -n "$m" ] && [ "$m" -gt 0 ] 2>/dev/null; then blk="$m"; break; fi
+            sleep 3
+          done
+          if [ -z "$blk" ]; then
+            echo "----- router logs (tail) -----"
+            docker logs --tail 80 sr_dryrun 2>&1 || true
+            echo "::error::Chain tracker never reported a latest block (metric absent or 0). The GET_BLOCKNUM parse directive is likely broken (wrong template, parser_func, parser_arg, or encoding), OR every upstream failed to serve it."
+            exit 1
+          fi
+          echo "GET_BLOCKNUM healthy: lava_rpcsmartrouter_latest_block=$blk"
+
       - name: Probe one method
         run: |
           set -euo pipefail
