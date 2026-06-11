@@ -49,7 +49,7 @@ Verify these values against the chain's actual characteristics. Read the spec gu
 |-----------|---------------|
 | `average_block_time` | Measure on live network (milliseconds) |
 | `block_distance_for_finalized_data` | Based on consensus: PoW=6-12, BFT=1-3, instant=1 |
-| `blocks_in_finalization_proof` | `1000ms / average_block_time`, minimum 3 |
+| `blocks_in_finalization_proof` | Finality-typed: `3` for probabilistic finality (PoW / slow PoS); `1` for fast/instant finality (BFT, Tendermint/Cosmos, instant-settlement L2s — e.g. base.json, optimism.json use 1); fallback ONLY when the finality model is unclear: `max(ceil(1000ms / average_block_time), 3)`. Do not flag a spec for using `1` when its finality model is fast/instant. |
 | `allowed_block_lag_for_qos_sync` | `10000ms / average_block_time`, minimum 1 |
 | `reliability_threshold` | Standard: `268435455` (1/16 VRF ratio) |
 | `data_reliability_enabled` | `true` for production chains |

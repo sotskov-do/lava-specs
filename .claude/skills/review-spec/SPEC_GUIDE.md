@@ -296,9 +296,9 @@ Testnet: MYCHAINT
    - Instant finality: 1 block
 
 3. **`blocks_in_finalization_proof`**
-   - Formula: `1000ms / average_block_time`
-   - Minimum: 1
-   - Examples: Ethereum=3 (1000/13000≈0.08→3), Polygon=3, StarkNet=3
+   - Finality-typed: `3` for probabilistic finality (PoW / slow PoS); `1` for fast/instant finality (BFT, Tendermint/Cosmos, instant-settlement L2s — base.json and optimism.json use 1)
+   - Fallback ONLY when the finality model can't be confidently classified: `max(ceil(1000ms / average_block_time), 3)`
+   - Examples: Ethereum=3, Polygon=3, StarkNet=3, Base/Optimism=1 — do not flag `1` on a fast-finality chain
 
 4. **`allowed_block_lag_for_qos_sync`**
    - Formula: `10000ms / average_block_time` AND >= 1
@@ -1698,7 +1698,7 @@ lavad tx pairing stake-provider \
 - Include both mainnet and testnet specs in one proposal
 - Testnet should inherit from mainnet (use `imports`)
 - Only override what's different in testnet (typically just verifications)
-- Deposit: 10,000 LAVA (10000000ulava) is standard
+- Deposit: `10000000ulava` (10,000 LAVA) is the mandated standard — flag any other value
 
 #### Step 6.2: Save Proposal Files
 **Objective**: Store proposal in correct locations
@@ -1808,7 +1808,7 @@ See full test results: [link to testing documentation]
 - [ ] **Governance Prep**
   - [ ] Proposal JSON formatted correctly
   - [ ] Proposal description written
-  - [ ] Deposit amount confirmed (10,000 LAVA)
+  - [ ] Deposit amount confirmed (`10000000ulava`)
   - [ ] Community feedback gathered (if applicable)
 
 #### Step 7.2: Submit to GitHub

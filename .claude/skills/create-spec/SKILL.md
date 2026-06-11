@@ -29,7 +29,7 @@ To run the whole skill on one tier, ignore the per-role values and set every dis
 ## Output target
 
 - **Path:** `<chain>.json` (lowercase filename matching the mainnet `index` lowercased — e.g. `iota.json`, `polygon.json`)
-- **Structure:** single file, `proposal.title` + `proposal.description` + `proposal.specs[]` (2 entries: mainnet + testnet) + `deposit: "10001000ulava"`
+- **Structure:** single file, `proposal.title` + `proposal.description` + `proposal.specs[]` (2 entries: mainnet + testnet) + `deposit: "10000000ulava"`
 - **Reference:** `iota.json` is the canonical example
 
 ## Full-read enforcement (mandatory)
@@ -241,7 +241,7 @@ jq -r '.proposal.specs[] | select(.index == "'$PARENT'") | .api_collections[].ap
 comm -23 /tmp/parent_methods.txt /tmp/chain_methods.txt > /tmp/ghosts.txt
 ```
 
-For each "ghost" method (in parent but not chain docs), run an empirical curl probe against the chain's public RPC:
+For each "ghost" method (in parent but not chain docs), run an empirical curl probe against the chain's public RPC (corroborating evidence only — never decisive on its own):
 
 ```bash
 curl -s -X POST -H "Content-Type: application/json" \
@@ -249,7 +249,19 @@ curl -s -X POST -H "Content-Type: application/json" \
   <chain_rpc_url>
 ```
 
-If the response is `-32601 method not found` → the method is a ghost, disable or remove it in the child spec. If the response is anything else → method exists; retain inheritance.
+**Disable rule — positive evidence required.** A probe error (`-32601` or anything else) NEVER justifies disabling by itself: the provided nodes are free-tier/public and a paid or dedicated node may serve the method. Disable or remove a ghost in the child spec ONLY when you ALSO have positive evidence of absence, one of:
+1. The chain's official docs EXPLICITLY state the method is unsupported, removed, or deprecated (cite the URL), or
+2. The chain's node-client implementation does not implement it — check the client's GitHub repo / RPC reference (e.g. op-geth, reth, zebra). A method the client never implements cannot work on any node tier (cite the source URL).
+
+Probe error but no positive-evidence source → retain inheritance and put the method on the watch-list instead. Probe returns anything other than an error → method exists; retain inheritance.
+
+**Justification ledger (enforced).** For EVERY method/addon/collection set to `enabled: false` — in this phase or any later one — append a row to `docs/<chain>/DISABLED_JUSTIFICATIONS.md`:
+
+```
+| <name> | docs-explicit | client-source | <URL> | <one-line quote> |
+```
+
+The Phase 11 final reviewer cross-checks the spec's `enabled: false` entries against this file; any disabled entry without a positive-evidence row is a CRITICAL finding.
 
 **Step 2 — Chain-specific additions.** Diff chain docs against parent:
 
@@ -399,7 +411,7 @@ Write the single file `<chain>.json` using the Write tool. The file structure mu
         "api_collections": [{ ..., "apis": [], "verifications": [{ "name": "chain-id", "values": [{ "expected_value": "<testnet_hex>" }] }] }] }
     ]
   },
-  "deposit": "10001000ulava"
+  "deposit": "10000000ulava"
 }
 ```
 
@@ -429,6 +441,7 @@ This phase boots the candidate spec inside a dockerized **smart-router** (`ghcr.
 - `<NODE_URL_1>` (required), `<NODE_URL_2>`, `<NODE_URL_3>` (optional) — 1–3 public node URLs (https://… or wss://…) — from Phase 2 or chain-metadata-researcher. At least one is required to boot.
 - `<WS_URL>` (optional in general, **REQUIRED for any spec with subscription methods** — e.g. an EVM chain inheriting `eth_subscribe` from ETH1) — a `ws://`/`wss://` URL. The smart-router excludes any provider that lacks a ws upstream for a subscription-enabled chain, and refuses to boot once all providers are excluded (`all static providers failed verification — cannot serve endpoint`). If the chain has subscriptions and no ws URL is available, gather one before Phase 8 or the boot fails.
 - `<EXTRA_INTERFACES>` (optional) — additional `(INTERFACE, urls)` blocks for multi-interface chains (Cosmos)
+- `<TESTNET_INDEX>` + `<TESTNET_NODE_URL_1..2>` + `<TESTNET_WS_URL>` — testnet spec index and node URLs from Phase 2/3 research. Pass them whenever ANY testnet RPC URL is known, so the subagent runs its Step 7 testnet verification pass (boot + verifications against the TESTNET variant — the only place the testnet chain-id `expected_value` is ever live-executed) and its Step 8 testnet block-time measurement. If no testnet URL is known, the testnet pass comes back SKIPPED — note that in the PR body and Phase 12 checklist.
 
 **Boot is mandatory whenever at least one node URL is available.** Boot and probe with however many URLs you have (1, 2, or 3) — the router's startup spec resolution + upstream verification catches spec-level defects (e.g. a result_parsing bug or a wrong chain-id `expected_value` that blocks startup) that the static gates cannot see, so a single URL is worth booting. The orchestrator must not invent URLs.
 
@@ -454,6 +467,8 @@ When the subagent returns, it reports a short summary (`PARSE:` and `VERIFY:` ve
 
 **Record the `ADDONS:` coverage summary and table** — every addon/extension the spec declares comes back classified `TESTED_OK`, `TESTED_FAIL`, or `NOT_TESTABLE` (no provided node supports it). `TESTED_FAIL` is a spec/routing defect: carry it into the Phase 9 reviewers and Phase 10 fix list like a FAIL method. `NOT_TESTABLE` is not a defect — surface it in the PR body and Phase 12 checklist with the per-upstream evidence so a reviewer can decide whether to re-test with a more capable node.
 
+**Record the `TESTNET_VERIFY:` verdict and the `BLOCK_TIME:` measurements.** `TESTNET_VERIFY: FAIL` (e.g. a wrong testnet chain-id `expected_value`) is a spec defect — carry it into the Phase 9 reviewers and the Phase 10 fix list as CRITICAL, exactly like a mainnet `VERIFY: FAIL`. `TESTNET_VERIFY: SKIPPED` means the testnet entry shipped without any live verification — surface that prominently in the PR body and Phase 12 checklist. A `BLOCK_TIME_MISMATCH (testnet)` (>20% deviation between the testnet's empirical block time and its effective spec value) → add a Phase 10 fix item: set an explicit `average_block_time` override in the testnet spec entry and recompute its derived params (`allowed_block_lag_for_qos_sync`, finalization fields) per the Phase 4 formulas. A `BLOCK_TIME_MISMATCH (mainnet)` should not happen (Phase 4 already locked the value against empirical data) — if it appears, treat it as MEDIUM and re-check the Phase 4 inputs.
+
 If the subagent reports `SMOKE: BOOT_FAILED` or otherwise indicates the router could not boot, present the error to the user and STOP. Do not proceed to Phase 9.
 
 If the subagent reports clean teardown and a populated report, proceed to Phase 9.
@@ -477,6 +492,8 @@ Dispatch THREE Agent subagents in parallel via a SINGLE message, each with `suba
 > Run the `/review-spec` skill on `<chain>.json`. Pass through `$ARGUMENTS[1]` (API docs path, may be empty) and `$ARGUMENTS[2]` (credentials path, may be empty).
 >
 > Before running `/review-spec`, read `docs/<chain>/METHOD_PROBE_REPORT.md` if it exists and incorporate the probe findings into your review (especially any FAIL or WARN classifications).
+>
+> The following are settled, skill-mandated decisions — do NOT report them as findings: (a) `deposit` is `"10000000ulava"`; (b) `blocks_in_finalization_proof` is finality-typed — `3` probabilistic (PoW/slow PoS), `1` fast/instant finality (BFT, Tendermint/Cosmos, instant-settlement L2s), fallback `max(ceil(1000 / average_block_time), 3)` only when the finality model is unclear; (c) a method/addon/collection must NOT be flagged for disabling because a probe returned `-32601`/errors on the provided nodes — free-tier limitation; disabling requires positive evidence (docs explicitly state unsupported/removed, or the chain's node-client implementation lacks it, with URL).
 >
 > `/review-spec` writes its report to the hard-coded path `docs/<chain>/SPEC_REVIEW_GAPS.md`. **As the LAST step of your work — immediately after `/review-spec` returns** — rename that file to a unique numbered path so the other parallel reviewers do not clobber it:
 >
@@ -518,6 +535,8 @@ wc -l <chain>.json
 
 Read all three parallel-reviewer reports. Build a deduplicated list of CRITICAL + MEDIUM gaps, keyed by `(gap_title, evidence_line_number)`. Drop MINOR gaps (they are out of scope for the automated fix pass).
 
+**Disable-suggestion filter (enforced).** Before dispatching the fixer, STRIP from the gap list every suggestion to set `enabled: false` on (or remove) a method, addon, or collection whose only justification is probe results (`-32601`, errors, timeouts on the provided nodes) — free-tier probe failures are never sufficient evidence (Phase 5 disable rule). Keep such a suggestion ONLY if it cites positive evidence of absence (official docs explicitly say unsupported/removed, or the chain's node client does not implement it — with a URL); when keeping one, the fixer must also append the evidence row to `docs/<chain>/DISABLED_JUSTIFICATIONS.md`. Stripped suggestions go to the PR-body watch-list instead, with a note that they need a paid/dedicated node to re-test.
+
 Snapshot the spec before fixing:
 
 ```bash
@@ -527,6 +546,8 @@ cp <chain>.json /tmp/spec_<chain>_pre_fix.json
 Dispatch one `general-purpose` Agent subagent (`model: "sonnet"`, no worktree needed — main filesystem) with this prompt:
 
 > You are fixing a Lava blockchain spec. Read `<chain>.json` and the deduplicated gap list below. Apply EVERY listed CRITICAL and MEDIUM fix in one pass. Do not touch any field not mentioned in the gap list. Do not refactor, reformat, or improve adjacent fields.
+>
+> You MUST NOT set `enabled: false` on any method, addon, or collection unless the gap entry cites positive documentation/client-source evidence with a URL — probe errors alone never justify disabling. When you do disable one, append its evidence row to `docs/<chain>/DISABLED_JUSTIFICATIONS.md`.
 >
 > [paste deduplicated gap list with file:line citations and recommended values]
 >
@@ -551,7 +572,7 @@ Skip this phase entirely only if Phase 8 was skipped (i.e. the user explicitly c
 **Read the subagent prompt fully** before dispatch:
 - `.claude/skills/create-spec/references/agents/smart-router-smoke-tester.md` (observe `END-OF-SMART-ROUTER-SMOKE-TESTER-SENTINEL`)
 
-**Dispatch ONE Agent subagent** with `subagent_type: general-purpose` and no `isolation`. Substitute the same `<chain>` / `<INDEX>` / `<INTERFACE>` / node URLs used in Phase 8, and pass the Phase 8 report path (`docs/<chain>/METHOD_PROBE_REPORT.md`) plus the deduplicated Phase 10 fix list (so the smoke tester can suggest a plausible culprit on regression).
+**Dispatch ONE Agent subagent** with `subagent_type: general-purpose` and no `isolation`. Substitute the same `<chain>` / `<INDEX>` / `<INTERFACE>` / node URLs used in Phase 8, and pass the Phase 8 report path (`docs/<chain>/METHOD_PROBE_REPORT.md`) plus the deduplicated Phase 10 fix list (so the smoke tester can suggest a plausible culprit on regression). If any Phase 10 fix touched the TESTNET spec entry (e.g. a chain-id `expected_value` or an `average_block_time` override), also pass the testnet inputs and append to the prompt: "After the mainnet smoke pass, repeat the Step 7 testnet verification pass from smart-router-tester.md against the fixed spec and report its `TESTNET_VERIFY:` verdict."
 
 ```
 Agent(description: "Smoke re-test fixed spec for <chain>",
@@ -585,6 +606,10 @@ Dispatch ONE Agent subagent with `subagent_type: general-purpose`, `model: "sonn
 > Run the `/review-spec` skill on `<chain>.json`. Pass through `$ARGUMENTS[1]` and `$ARGUMENTS[2]`.
 >
 > Before running `/review-spec`, read `docs/<chain>/METHOD_PROBE_REPORT.md` if it exists.
+>
+> The following are settled, skill-mandated decisions — do NOT report them as findings: (a) `deposit` is `"10000000ulava"`; (b) `blocks_in_finalization_proof` is finality-typed — `3` probabilistic, `1` fast/instant finality, fallback `max(ceil(1000 / average_block_time), 3)` only when the finality model is unclear; (c) probe errors on the provided nodes never justify disabling a method/addon/collection.
+>
+> Additionally verify disable justifications: list every `enabled: false` api/collection in `<chain>.json` (`jq`) and check each has a positive-evidence row (docs-explicit or client-source, with URL) in `docs/<chain>/DISABLED_JUSTIFICATIONS.md`. Any disabled entry without one is a CRITICAL finding.
 >
 > `/review-spec` writes its report to `docs/<chain>/SPEC_REVIEW_GAPS.md`. After it returns, rename to a final-pass-specific path:
 >
@@ -644,7 +669,7 @@ If a phase was skipped (e.g., Phase 8 skipped because user didn't supply node UR
 #### Governance Prep (out of skill scope — manual reminder)
 - ☐ Proposal JSON formatted correctly                    (the file produced has the proposal wrapper; user verifies title/description)
 - ☐ Proposal description written
-- ☐ Deposit amount confirmed                             (default "10001000ulava" written; user confirms)
+- ☐ Deposit amount confirmed                             (default "10000000ulava" written; user confirms)
 - ☐ Community feedback gathered (if applicable)
 ```
 

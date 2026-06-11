@@ -253,8 +253,20 @@ jobs:
             ## New chain spec: ${{ github.event.inputs.chain_name }}
 
             ### 🧪 Review verdict: <APPROVED | CHANGES REQUESTED>
-            <One line. From the Phase 11 final reviewer. If CHANGES REQUESTED,
-            state what blocks it (the unresolved CRITICAL/MEDIUM gaps).>
+            <One line. From the Phase 11 final reviewer.>
+
+            #### Unresolved findings (review these first)
+            <One row per CRITICAL/MEDIUM gap the pipeline left unfixed (the
+            Phase 11 no-loop policy). Each row must be actionable on its own:
+            what is wrong, where in the spec, and the concrete change the
+            reviewer recommends. Write "None." when APPROVED with nothing
+            remaining. Also list here any disable-suggestions stripped by the
+            Phase 10 filter (probe-only evidence) as "watch-list: re-test on a
+            paid/dedicated node".>
+
+            | # | Severity | Finding | Spec location | Suggested fix |
+            |---|----------|---------|---------------|---------------|
+            | 1 | <CRITICAL/MEDIUM> | <what is wrong and why it was flagged> | <index / collection / api or field> | <the concrete recommended change> |
 
             | Reviewer | CRITICAL | MEDIUM | MINOR |
             |----------|---------:|-------:|------:|
@@ -269,16 +281,30 @@ jobs:
             | Mainnet index | ${{ github.event.inputs.chain_mainnet_index }} |
             | Testnet index | ${{ github.event.inputs.chain_testnet_index }} |
             | Spec file | <chain>.json |
-            | Parse directives (runtime) | PARSE: <OK/FAIL/PARTIAL> (Phase 8) → <OK/FAIL/PARTIAL/n-a> (Phase 10b) |
-            | Verifications (runtime) | VERIFY: <OK/FAIL/PARTIAL> (Phase 8) → <OK/FAIL/PARTIAL/n-a> (Phase 10b) |
+
+            ### Runtime verification (smart-router)
+            <If the router could NOT boot in Phase 8 or Phase 10b, the FIRST
+            line of this section MUST say so in bold — name the cause and the
+            fallback evidence used (e.g. direct-upstream probing). Never let a
+            table below claim OK without that caveat leading the section.>
+
+            | Check | Phase 8 | Phase 10b |
+            |-------|---------|-----------|
+            | Parse directives (PARSE) | <OK/FAIL/PARTIAL/skipped> | <OK/FAIL/PARTIAL/n-a> |
+            | Verifications (VERIFY) | <OK/FAIL/PARTIAL/skipped> | <OK/FAIL/PARTIAL/n-a> |
+            | Testnet verifications (TESTNET_VERIFY) | <OK/FAIL/PARTIAL/SKIPPED + reason> | <n-a unless testnet entry was fixed> |
+            | Block time (empirical, Step 8) | mainnet <n> ms / testnet <n> ms or skipped | — |
 
             <The PARSE/VERIFY verdicts come from the smart-router-tester (Phase 8
             Step 3.5) and smart-router-smoke-tester (Phase 10b Step 1.5) returns:
             PARSE = GET_BLOCKNUM/GET_BLOCK_BY_NUM executed by the live router
             (metrics-gated), VERIFY = per-verification boot outcomes (chain-id,
-            pruning/GET_EARLIEST_BLOCK, ...). If FAIL/PARTIAL, name the failing
-            directive/verification and the affected upstreams right below the
-            table. If Phase 8 was skipped, write "skipped" for both.>
+            pruning/GET_EARLIEST_BLOCK, ...). TESTNET_VERIFY = the Step 7 boot
+            of the TESTNET spec variant (chain-id expected_value live-executed).
+            If FAIL/PARTIAL, name the failing directive/verification and the
+            affected upstreams right below the table. Any BLOCK_TIME_MISMATCH
+            gets its own line below the table with spec-vs-empirical values.
+            If Phase 8 was skipped, write "skipped" for all rows.>
 
             ### Addon & extension coverage
             <From the Phase 8 "Addon & extension coverage" table (re-checked in

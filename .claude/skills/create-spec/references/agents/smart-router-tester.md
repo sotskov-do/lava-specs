@@ -14,6 +14,9 @@ Unlike the old local-provider flow, there is **no lava node, no gov proposal, no
 - `<NODE_URL_1>`, `<NODE_URL_2>`, `<NODE_URL_3>` — 1–3 public node URLs (https://... ; ws/wss for subscriptions)
 - `<WS_URL>` (optional) — a separate WebSocket URL for chains with subscriptions; if provided, add it to every `direct-rpc` block's `node-urls` list
 - `<EXTRA_INTERFACES>` (optional) — for multi-interface chains (e.g., Cosmos: rest + tendermintrpc + grpc), a list of additional `(INTERFACE, urls)` blocks; each gets its own listener port (3361, 3362, …) and its own `direct-rpc` upstreams
+- `<TESTNET_INDEX>` (optional) — the testnet spec index UPPERCASE (e.g., `IOTAT`); empty → skip the Step 7 testnet pass
+- `<TESTNET_NODE_URL_1>`, `<TESTNET_NODE_URL_2>` (optional) — testnet node URLs for the Step 7 testnet verification pass and the Step 8 testnet block-time measurement
+- `<TESTNET_WS_URL>` (optional) — testnet `ws://`/`wss://` URL; required for the testnet pass when the spec has subscription methods (same hard requirement as Step 1b)
 
 ## Optional read
 
@@ -370,6 +373,21 @@ Non-benign warn/error/fatal/panic lines logged during probing (Step 4.5). Empty 
 | Level | Associated method | error excerpt |
 |---|---|---|
 | ERR | <method or —> | <excerpt> |
+
+## Testnet verification pass (Step 7)
+
+TESTNET_VERIFY: <OK/FAIL/PARTIAL/SKIPPED (+ skip reason)>
+
+| Verification | Verdict | Providers OK/failed | Notes |
+|---|---|---|---|
+| <name> | <OK/FAIL/PARTIAL/NOT_EXERCISED> | <n>/<n> | <testnet expected_value checked / failure excerpt> |
+
+## Empirical block time (Step 8)
+
+| Network | RPC | Empirical (ms) | Spec effective (ms) | Drift | Verdict |
+|---|---|---|---|---|---|
+| mainnet | <url> | <n> | <n> | <±n%> | <OK / BLOCK_TIME_MISMATCH> |
+| testnet | <url or skipped> | <n or -> | <n> | <±n% or -> | <OK / BLOCK_TIME_MISMATCH / skipped> |
 ```
 
 ## Step 6 — Tear down
@@ -379,6 +397,43 @@ $DOCKER rm -f sr_<chain> 2>/dev/null || true
 ```
 
 Repeat Steps 1–6 for each `(spec_variant, api_interface)` pair if more than one was passed in. Each iteration uses a fresh container (no shared state between runs).
+
+## Step 7 — Testnet verification pass (boot + verifications only, NO method probe)
+
+Skip ONLY if `<TESTNET_INDEX>` is empty or no testnet node URL was provided — then record `TESTNET_VERIFY: SKIPPED (no testnet inputs)` in the report and the return summary.
+
+The testnet spec entry thin-inherits the mainnet entry, but its overrides — above all the testnet chain-id `expected_value`, which is often set from convention rather than live-verified — are exercised by NOTHING else in the pipeline. So boot the router once against the TESTNET variant and confirm the verifications pass there too. This pass is boot + Step 3.5 only; do not run the Step 4 method-probe loop.
+
+1. Write `/tmp/sr_<chain>_testnet.yml` — same shape as Step 1b, but `chain-id: "<TESTNET_INDEX>"` on the endpoint and every `direct-rpc` block, using the testnet node URLs (one block per URL). If the spec has subscription methods, every block needs `<TESTNET_WS_URL>` — if the spec has subscriptions and no testnet ws/wss URL was provided, record `TESTNET_VERIFY: SKIPPED (subscriptions present, no testnet ws URL)` rather than booting a doomed config.
+2. Boot a separate container `sr_<chain>_testnet` publishing ports `3460:3360` and `7879:7779` (Step 2 with names/ports swapped), and wait for readiness (Step 3, against `localhost:3460`).
+3. Run the full Step 3.5 check against it — metrics on `localhost:7879`, log greps on the `sr_<chain>_testnet` container. Classify `PARSE_BLOCKNUM` and every verification (`chain-id` with the TESTNET `expected_value`, `pruning`, addon `enabled` checks, …) as OK/FAIL/PARTIAL/NOT_EXERCISED.
+4. Tear down: `$DOCKER rm -f sr_<chain>_testnet`.
+
+Overall verdict `TESTNET_VERIFY: OK | FAIL | PARTIAL | SKIPPED` — same aggregation rules as the mainnet VERIFY verdict. A testnet chain-id mismatch or boot failure on spec resolution is a spec defect of the same severity as a mainnet one.
+
+## Step 8 — Empirical block time (mainnet AND testnet, direct RPC)
+
+Measure both networks' block times empirically — testnets often run faster or slower than mainnet, and the testnet spec entry inherits `average_block_time` from mainnet unless it sets its own override.
+
+Recipe for `jsonrpc` EVM chains (adapt for other families: cosmos → header timestamps from `/block`; solana → `getBlockTime` deltas; substrate → block timestamps via `chain_getBlock`; if no recipe fits, record "skipped: no recipe for <family>"):
+
+```bash
+measure_abt() { # $1 = rpc url
+  L_HEX=$(curl -s -m 10 -X POST -H 'Content-Type: application/json' \
+    --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' "$1" | jq -r .result)
+  [[ "$L_HEX" =~ ^0x[0-9a-fA-F]+$ ]] || { echo "skipped: latest fetch failed"; return; }
+  L=$((L_HEX)); E=$((L-100))
+  T_L=$(curl -s -m 10 -X POST -H 'Content-Type: application/json' \
+    --data "{\"jsonrpc\":\"2.0\",\"method\":\"eth_getBlockByNumber\",\"params\":[\"$(printf '0x%x' $L)\",false],\"id\":1}" "$1" | jq -r .result.timestamp)
+  T_E=$(curl -s -m 10 -X POST -H 'Content-Type: application/json' \
+    --data "{\"jsonrpc\":\"2.0\",\"method\":\"eth_getBlockByNumber\",\"params\":[\"$(printf '0x%x' $E)\",false],\"id\":1}" "$1" | jq -r .result.timestamp)
+  echo "abt_ms=$(( ( $((T_L)) - $((T_E)) ) * 1000 / 100 ))"
+}
+measure_abt "<NODE_URL_1>"            # mainnet
+measure_abt "<TESTNET_NODE_URL_1>"    # testnet — skip if empty
+```
+
+Compare each measurement against the spec's EFFECTIVE `average_block_time` for that network: the testnet entry inherits the mainnet value via `imports` unless it declares its own — resolve the effective value with `jq` over the spec (and its parent if needed). Deviation > 20% on either network → record `BLOCK_TIME_MISMATCH (<network>): spec=<v>ms empirical=<v>ms` in the report and the return summary. Do not edit the spec yourself — the orchestrator decides the fix (typically an explicit `average_block_time` override in the testnet entry).
 
 ## Return to orchestrator
 
@@ -390,7 +445,9 @@ Return a short summary:
 4. `ADDONS: <n> tested-ok / <n> failed / <n> not-testable` (or `none declared`) — plus the full coverage table inline (it is small): every declared addon/extension with its classification, and for `NOT_TESTABLE` the per-upstream evidence ("nodes don't support it").
 5. Counts: `PASS=<n> FAIL=<n> SKIP=<n> WARN=<n> TIMEOUT=<n> LOG_WARN=<n>` (`LOG_WARN` = non-benign log-scan lines from Step 4.5).
 6. The names of any FAIL/TIMEOUT methods (one per line), plus any method downgraded to WARN by the log scan, so the orchestrator can decide whether to fix the spec before Phase 9.
-7. Teardown status (container removed / leftover container).
+7. `TESTNET_VERIFY: OK | FAIL | PARTIAL | SKIPPED` — the Step 7 verdict. On FAIL/PARTIAL name the verification(s) and include the failure excerpt; on SKIPPED include the reason.
+8. `BLOCK_TIME: mainnet=<ms|skipped> testnet=<ms|skipped>` — the Step 8 measurements, plus any `BLOCK_TIME_MISMATCH (<network>)` flag with the spec-vs-empirical values.
+9. Teardown status (containers removed / leftover containers — both `sr_<chain>` and `sr_<chain>_testnet`).
 
 If the router could not boot, return `SMOKE: BOOT_FAILED` plus the relevant `$DOCKER logs` excerpt instead.
 
