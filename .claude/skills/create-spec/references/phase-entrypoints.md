@@ -7,7 +7,10 @@ reconstruct context from committed state and run Phase N → end.
 
 ## Inputs the workflow passes in the prompt
 
-- `START_PHASE` — one of 8, 9, 10, 11.
+- `START_PHASE` / `END_PHASE` — the run span (inclusive). Run Phase `START_PHASE`
+  through `END_PHASE` and then STOP — do NOT run any phase past `END_PHASE`. A
+  single-phase command has `START_PHASE == END_PHASE` (run exactly that one phase);
+  `/rerun-from N` and the PR-open auto-start have `END_PHASE = 12` (run to the end).
 - `PR_NUMBER` — the open PR for this chain; the spec is the committed `<chain>.json`
   on the checked-out branch.
 - `MAINNET_URLS`, `TESTNET_URLS` — comma-separated endpoint lists already resolved
@@ -18,6 +21,11 @@ reconstruct context from committed state and run Phase N → end.
 
 ## Context reconstruction (do this first, every entry)
 
+0. Stamp the run-start epoch so the Phase 12 run-stats scope to THIS pipeline run —
+   Phase 1, which normally writes it, did not run:
+   ```bash
+   date +%s > /tmp/create_spec_run_start.epoch
+   ```
 1. Read the committed spec: `cat <chain>.json` (filename = mainnet index lowercased).
    Derive `<chain>`, `<INDEX>`, `<INTERFACE>` from it — do NOT re-derive from research.
 2. Pull prior phase outputs from the PR comments instead of regenerating them:
@@ -47,32 +55,72 @@ gh pr comment "$PR_NUMBER" --body-file docs/<chain>/METHOD_PROBE_REPORT.md
 
 Use a one-line bold header per comment so phases are scannable, e.g.
 `**Phase 8 — smart-router probe**` then the report body. On a hard failure, post a
-comment naming the failure and the exact `/rerun-*` command that would retry it.
+comment naming the failure and the exact retry command from the grammar below.
+
+## Retry command grammar (use these EXACT commands — never invent others)
+
+Whenever you tell a human how to retry, you MUST use a command the pipeline parser
+recognises. Inventing one (e.g. `/rerun-phase8`) silently no-ops — the job runs,
+the parser returns `IS_COMMAND=false`, and every downstream step skips.
+
+The **named** commands re-run EXACTLY their one phase (`START==END`). Only
+`/rerun-from N` runs from phase N through the end (`END=12`).
+
+| Command | Runs | Optional args |
+|---|---|---|
+| `/rerun-probe` | Phase 8 only (boot + probe) | `mainnet=<url\|use=SECRET>[,…] testnet=<url\|use=SECRET>[,…]` + free-text hints |
+| `/rerun-review` | Phase 9 only (reviewers) | — |
+| `/rerun-fix` | Phase 10 only (fix + 10b) | — |
+| `/rerun-final` | Phase 11 only (final review) | — |
+| `/rerun-from <8\|9\|10\|11>` | that phase → Phase 12 (to the end) | as for the matching command |
+
+So `/rerun-probe` re-runs ONLY Phase 8 and posts only its comment; to also re-run
+the reviews/fix/verdict on top of a new probe, use `/rerun-from 8`. To retry a
+failed Phase-8 boot the command is **`/rerun-probe`** (optionally
+`/rerun-probe mainnet=https://your-node/rpc`) — NOT `/rerun-phase8` or any invented
+form. When you suggest a retry in a comment, pick the command whose span matches
+what actually needs redoing.
+
+**Advancing through the span.** After finishing a phase, advance to the next only
+while you have NOT yet reached `END_PHASE`; once the current phase equals
+`END_PHASE`, STOP (do not run any later phase). A hard failure also stops the run.
 
 ## Entry: Phase 8 (smart-router boot + probe)
 
 Reconstruct context, then run Phase 8 of `SKILL.md` against `MAINNET_URLS` /
 `TESTNET_URLS` (probing http+ws). Post `docs/<chain>/METHOD_PROBE_REPORT.md` as a PR
-comment. Then continue to Phase 9 → 10 → 10b → 11 → summary unless a phase hard-fails.
+comment. If `END_PHASE` is 8, STOP here. Otherwise continue to Phase 9.
 
 ## Entry: Phase 9 (parallel reviewers)
 
 Read `<chain>.json` and the latest Phase 8 probe-report comment. Run Phase 9 of
 `SKILL.md`. Post a combined reviewers comment (the three TALLY lines + merged gaps).
-Continue to Phase 10.
+If `END_PHASE` is 9, STOP here. Otherwise continue to Phase 10.
 
 ## Entry: Phase 10 (synthesize gaps + fix + 10b re-probe)
 
 Read `<chain>.json`, the latest reviewers comment, and the latest probe-report
 comment. Run Phase 10 + Phase 10b of `SKILL.md`. Post a fix-log comment and the
-10b smoke-result comment. Continue to Phase 11.
+10b smoke-result comment. If `END_PHASE` is 10, STOP here. Otherwise continue to
+Phase 11.
 
 ## Entry: Phase 11 (final reviewer + summary)
 
 Read `<chain>.json` and the latest fix-log comment. Run Phase 11. Post the verdict
-(APPROVED / CHANGES REQUESTED with the TALLY) as a PR comment, then post the Phase 12
-summary checklist as a final comment. Do NOT halt on CHANGES REQUESTED in CI — record
-the verdict honestly and stop after the summary comment.
+(APPROVED / CHANGES REQUESTED with the TALLY) as a PR comment. Do NOT halt on
+CHANGES REQUESTED in CI — record the verdict honestly. If `END_PHASE` is 11, STOP
+after the verdict comment (do NOT post a Phase 12 summary). Only if `END_PHASE` is
+12 do you then run Phase 12 and post the summary checklist as a final comment.
+
+**Run-stats scope (do not misreport totals).** Phase 12 (and therefore the
+run-stats report) only runs when `END_PHASE` is 12. This is a *resumable* run
+covering only Phases `START_PHASE`–12, in a separate workflow run from the
+create_spec job that ran Phases 1–7. Label the time/tokens explicitly as
+**"this pipeline run (Phases `START_PHASE`–12)"** — do NOT present them as a 1–12
+grand total. The Phases 1–7 time/tokens live in the create_spec run and its PR body;
+the true total is the two runs added together (state that, rather than printing a
+number that looks complete but only covers one part). Any retry hint must use the
+exact command from the grammar above whose span matches what needs redoing.
 
 ## Sentinel-gating under partial runs
 
