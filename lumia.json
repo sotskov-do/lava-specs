@@ -161,9 +161,9 @@
                 "name": "zkevm_getBatchByNumber",
                 "block_parsing": {
                   "parser_arg": [
-                    "0"
+                    "latest"
                   ],
-                  "parser_func": "PARSE_BY_ARG"
+                  "parser_func": "DEFAULT"
                 },
                 "compute_units": 20,
                 "enabled": true,
@@ -255,7 +255,7 @@
                   ],
                   "parser_func": "DEFAULT"
                 },
-                "compute_units": 50,
+                "compute_units": 100,
                 "enabled": true,
                 "category": {
                   "deterministic": true,
