@@ -543,28 +543,7 @@
                 "compute_units": 10,
                 "extra_compute_units": 0,
                 "category": {
-                  "deterministic": true,
-                  "local": false,
-                  "subscription": false,
-                  "stateful": 0,
-                  "hanging_api": false
-                },
-                "block_parsing": {
-                  "parser_arg": [
-                    "latest"
-                  ],
-                  "parser_func": "DEFAULT",
-                  "default_value": "",
-                  "encoding": ""
-                }
-              },
-              {
-                "enabled": true,
-                "name": "/cosmos/evidence/v1beta1/evidence/{evidence_hash}",
-                "compute_units": 10,
-                "extra_compute_units": 0,
-                "category": {
-                  "deterministic": true,
+                  "deterministic": false,
                   "local": false,
                   "subscription": false,
                   "stateful": 0,
@@ -1109,7 +1088,7 @@
                   },
                   {
                     "extension": "archive",
-                    "expected_value": "*"
+                    "expected_value": "1"
                   }
                 ]
               }
