@@ -646,7 +646,13 @@
                                 "timeout_ms": 15000
                             }
                         ],
-                        "headers": [],
+                        "headers": [
+                            {
+                                "name": "Accept",
+                                "kind": "pass_override",
+                                "value": "application/json"
+                            }
+                        ],
                         "inheritance_apis": [],
                         "parse_directives": [
                             {
@@ -815,7 +821,12 @@
                                 "extra_compute_units": 0
                             }
                         ],
-                        "headers": [],
+                        "headers": [
+                            {
+                                "name": "content-type",
+                                "kind": "pass_send"
+                            }
+                        ],
                         "inheritance_apis": [],
                         "parse_directives": []
                     },
@@ -828,24 +839,6 @@
                             "add_on": "indexer"
                         },
                         "apis": [
-                            {
-                                "name": "/health",
-                                "block_parsing": {
-                                    "parser_arg": [
-                                        "latest"
-                                    ],
-                                    "parser_func": "DEFAULT"
-                                },
-                                "compute_units": 10,
-                                "enabled": true,
-                                "category": {
-                                    "deterministic": false,
-                                    "local": true,
-                                    "subscription": false,
-                                    "stateful": 0
-                                },
-                                "extra_compute_units": 0
-                            },
                             {
                                 "name": "/v2/accounts",
                                 "block_parsing": {
@@ -865,43 +858,7 @@
                                 "extra_compute_units": 0
                             },
                             {
-                                "name": "/v2/accounts/{account-id}",
-                                "block_parsing": {
-                                    "parser_arg": [
-                                        "latest"
-                                    ],
-                                    "parser_func": "DEFAULT"
-                                },
-                                "compute_units": 20,
-                                "enabled": true,
-                                "category": {
-                                    "deterministic": true,
-                                    "local": false,
-                                    "subscription": false,
-                                    "stateful": 0
-                                },
-                                "extra_compute_units": 0
-                            },
-                            {
                                 "name": "/v2/accounts/{account-id}/apps-local-state",
-                                "block_parsing": {
-                                    "parser_arg": [
-                                        "latest"
-                                    ],
-                                    "parser_func": "DEFAULT"
-                                },
-                                "compute_units": 20,
-                                "enabled": true,
-                                "category": {
-                                    "deterministic": true,
-                                    "local": false,
-                                    "subscription": false,
-                                    "stateful": 0
-                                },
-                                "extra_compute_units": 0
-                            },
-                            {
-                                "name": "/v2/accounts/{account-id}/assets",
                                 "block_parsing": {
                                     "parser_arg": [
                                         "latest"
@@ -991,60 +948,6 @@
                                 "extra_compute_units": 0
                             },
                             {
-                                "name": "/v2/applications/{application-id}",
-                                "block_parsing": {
-                                    "parser_arg": [
-                                        "latest"
-                                    ],
-                                    "parser_func": "DEFAULT"
-                                },
-                                "compute_units": 20,
-                                "enabled": true,
-                                "category": {
-                                    "deterministic": true,
-                                    "local": false,
-                                    "subscription": false,
-                                    "stateful": 0
-                                },
-                                "extra_compute_units": 0
-                            },
-                            {
-                                "name": "/v2/applications/{application-id}/box",
-                                "block_parsing": {
-                                    "parser_arg": [
-                                        "latest"
-                                    ],
-                                    "parser_func": "DEFAULT"
-                                },
-                                "compute_units": 20,
-                                "enabled": true,
-                                "category": {
-                                    "deterministic": true,
-                                    "local": false,
-                                    "subscription": false,
-                                    "stateful": 0
-                                },
-                                "extra_compute_units": 0
-                            },
-                            {
-                                "name": "/v2/applications/{application-id}/boxes",
-                                "block_parsing": {
-                                    "parser_arg": [
-                                        "latest"
-                                    ],
-                                    "parser_func": "DEFAULT"
-                                },
-                                "compute_units": 20,
-                                "enabled": true,
-                                "category": {
-                                    "deterministic": true,
-                                    "local": false,
-                                    "subscription": false,
-                                    "stateful": 0
-                                },
-                                "extra_compute_units": 0
-                            },
-                            {
                                 "name": "/v2/applications/{application-id}/logs",
                                 "block_parsing": {
                                     "parser_arg": [
@@ -1074,24 +977,6 @@
                                 "enabled": true,
                                 "category": {
                                     "deterministic": false,
-                                    "local": false,
-                                    "subscription": false,
-                                    "stateful": 0
-                                },
-                                "extra_compute_units": 0
-                            },
-                            {
-                                "name": "/v2/assets/{asset-id}",
-                                "block_parsing": {
-                                    "parser_arg": [
-                                        "latest"
-                                    ],
-                                    "parser_func": "DEFAULT"
-                                },
-                                "compute_units": 20,
-                                "enabled": true,
-                                "category": {
-                                    "deterministic": true,
                                     "local": false,
                                     "subscription": false,
                                     "stateful": 0
@@ -1177,26 +1062,6 @@
                                         "latest"
                                     ],
                                     "parser_func": "DEFAULT"
-                                },
-                                "compute_units": 20,
-                                "enabled": true,
-                                "category": {
-                                    "deterministic": true,
-                                    "local": false,
-                                    "subscription": false,
-                                    "stateful": 0
-                                },
-                                "extra_compute_units": 0
-                            },
-                            {
-                                "name": "/v2/blocks/{round-number}",
-                                "block_parsing": {
-                                    "parser_arg": [
-                                        "round-number",
-                                        "=",
-                                        "0"
-                                    ],
-                                    "parser_func": "PARSE_DICTIONARY_OR_ORDERED"
                                 },
                                 "compute_units": 20,
                                 "enabled": true,
