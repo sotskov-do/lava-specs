@@ -90,7 +90,7 @@
                 "block_parsing": { "parser_arg": [""], "parser_func": "EMPTY" },
                 "compute_units": 20,
                 "enabled": true,
-                "category": { "deterministic": true, "local": false, "subscription": false, "stateful": 0 },
+                "category": { "deterministic": false, "local": false, "subscription": false, "stateful": 0 },
                 "extra_compute_units": 0
               },
               {
@@ -284,7 +284,7 @@
                 "block_parsing": { "parser_arg": [""], "parser_func": "EMPTY" },
                 "compute_units": 20,
                 "enabled": true,
-                "category": { "deterministic": true, "local": false, "subscription": false, "stateful": 0 },
+                "category": { "deterministic": false, "local": false, "subscription": false, "stateful": 0 },
                 "extra_compute_units": 0
               },
               {
