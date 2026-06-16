@@ -53,9 +53,9 @@
                                 "name": "eth_fillTransaction",
                                 "block_parsing": {
                                     "parser_arg": [
-                                        ""
+                                        "latest"
                                     ],
-                                    "parser_func": "EMPTY"
+                                    "parser_func": "DEFAULT"
                                 },
                                 "compute_units": 10,
                                 "enabled": true,
@@ -71,9 +71,9 @@
                                 "name": "eth_getRawTransactionByBlockHashAndIndex",
                                 "block_parsing": {
                                     "parser_arg": [
-                                        "0"
+                                        "latest"
                                     ],
-                                    "parser_func": "PARSE_BY_ARG"
+                                    "parser_func": "DEFAULT"
                                 },
                                 "compute_units": 20,
                                 "enabled": true,
@@ -107,9 +107,9 @@
                                 "name": "eth_getRawTransactionByHash",
                                 "block_parsing": {
                                     "parser_arg": [
-                                        "0"
+                                        "latest"
                                     ],
-                                    "parser_func": "PARSE_BY_ARG"
+                                    "parser_func": "DEFAULT"
                                 },
                                 "compute_units": 20,
                                 "enabled": true,
@@ -221,7 +221,7 @@
                                     ],
                                     "parser_func": "DEFAULT"
                                 },
-                                "compute_units": 20,
+                                "compute_units": 5000,
                                 "enabled": true,
                                 "category": {
                                     "deterministic": false,
@@ -325,9 +325,9 @@
                                 "name": "arb_getL1Confirmations",
                                 "block_parsing": {
                                     "parser_arg": [
-                                        "0"
+                                        "latest"
                                     ],
-                                    "parser_func": "PARSE_BY_ARG"
+                                    "parser_func": "DEFAULT"
                                 },
                                 "compute_units": 20,
                                 "enabled": true,
@@ -531,9 +531,9 @@
                                 "name": "debug_executionWitnessByHash",
                                 "block_parsing": {
                                     "parser_arg": [
-                                        "0"
+                                        "latest"
                                     ],
-                                    "parser_func": "PARSE_BY_ARG"
+                                    "parser_func": "DEFAULT"
                                 },
                                 "compute_units": 100,
                                 "enabled": true,
@@ -549,9 +549,9 @@
                                 "name": "debug_getModifiedAccountsByHash",
                                 "block_parsing": {
                                     "parser_arg": [
-                                        "0"
+                                        "latest"
                                     ],
-                                    "parser_func": "PARSE_BY_ARG"
+                                    "parser_func": "DEFAULT"
                                 },
                                 "compute_units": 100,
                                 "enabled": true,
@@ -585,9 +585,9 @@
                                 "name": "debug_intermediateRoots",
                                 "block_parsing": {
                                     "parser_arg": [
-                                        "0"
+                                        "latest"
                                     ],
-                                    "parser_func": "PARSE_BY_ARG"
+                                    "parser_func": "DEFAULT"
                                 },
                                 "compute_units": 100,
                                 "enabled": true,
@@ -603,14 +603,14 @@
                                 "name": "debug_traceBadBlock",
                                 "block_parsing": {
                                     "parser_arg": [
-                                        ""
+                                        "latest"
                                     ],
-                                    "parser_func": "EMPTY"
+                                    "parser_func": "DEFAULT"
                                 },
                                 "compute_units": 100,
                                 "enabled": true,
                                 "category": {
-                                    "deterministic": true,
+                                    "deterministic": false,
                                     "local": true,
                                     "subscription": false,
                                     "stateful": 0
@@ -734,6 +734,10 @@
                                     ],
                                     "parser_func": "DEFAULT"
                                 },
+                                "parsers": [
+                                    { "parse_path": ".params.[0].fromBlock", "parse_type": "BLOCK_EARLIEST" },
+                                    { "parse_path": ".params.[0].toBlock", "parse_type": "BLOCK_LATEST" }
+                                ],
                                 "compute_units": 200,
                                 "enabled": true,
                                 "category": {
@@ -788,6 +792,9 @@
                                     ],
                                     "parser_func": "DEFAULT"
                                 },
+                                "parsers": [
+                                    { "parse_path": ".params.[0]", "parse_type": "BLOCK_HASH" }
+                                ],
                                 "compute_units": 200,
                                 "enabled": true,
                                 "category": {
@@ -806,6 +813,9 @@
                                     ],
                                     "parser_func": "DEFAULT"
                                 },
+                                "parsers": [
+                                    { "parse_path": ".params.[0]", "parse_type": "BLOCK_HASH" }
+                                ],
                                 "compute_units": 200,
                                 "enabled": true,
                                 "category": {
