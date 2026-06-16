@@ -1,0 +1,477 @@
+{
+  "proposal": {
+    "title": "Add Specs: NEAR",
+    "description": "Adding new specification support for relaying NEAR Protocol data on Lava",
+    "specs": [
+      {
+        "index": "NEAR",
+        "name": "near mainnet",
+        "enabled": true,
+        "imports": [],
+        "reliability_threshold": 268435455,
+        "data_reliability_enabled": true,
+        "block_distance_for_finalized_data": 2,
+        "blocks_in_finalization_proof": 1,
+        "average_block_time": 600,
+        "allowed_block_lag_for_qos_sync": 17,
+        "shares": 1,
+        "min_stake_provider": {
+          "denom": "ulava",
+          "amount": "5000000000"
+        },
+        "api_collections": [
+          {
+            "enabled": true,
+            "collection_data": {
+              "api_interface": "jsonrpc",
+              "internal_path": "",
+              "type": "POST",
+              "add_on": ""
+            },
+            "apis": [
+              {
+                "name": "block",
+                "block_parsing": { "parser_arg": ["block_id"], "parser_func": "PARSE_CANONICAL" },
+                "compute_units": 20,
+                "enabled": true,
+                "category": { "deterministic": true, "local": false, "subscription": false, "stateful": 0 },
+                "extra_compute_units": 0
+              },
+              {
+                "name": "block_effects",
+                "block_parsing": { "parser_arg": ["block_id"], "parser_func": "PARSE_CANONICAL" },
+                "compute_units": 20,
+                "enabled": true,
+                "category": { "deterministic": true, "local": false, "subscription": false, "stateful": 0 },
+                "extra_compute_units": 0
+              },
+              {
+                "name": "chunk",
+                "block_parsing": { "parser_arg": ["block_id"], "parser_func": "PARSE_CANONICAL" },
+                "compute_units": 20,
+                "enabled": true,
+                "category": { "deterministic": true, "local": false, "subscription": false, "stateful": 0 },
+                "extra_compute_units": 0
+              },
+              {
+                "name": "changes",
+                "block_parsing": { "parser_arg": ["block_id"], "parser_func": "PARSE_CANONICAL" },
+                "compute_units": 20,
+                "enabled": true,
+                "category": { "deterministic": true, "local": false, "subscription": false, "stateful": 0 },
+                "extra_compute_units": 0
+              },
+              {
+                "name": "query",
+                "block_parsing": { "parser_arg": ["block_id"], "parser_func": "PARSE_CANONICAL" },
+                "compute_units": 20,
+                "enabled": true,
+                "category": { "deterministic": true, "local": false, "subscription": false, "stateful": 0 },
+                "extra_compute_units": 0
+              },
+              {
+                "name": "gas_price",
+                "block_parsing": { "parser_arg": ["0"], "parser_func": "PARSE_BY_ARG" },
+                "compute_units": 20,
+                "enabled": true,
+                "category": { "deterministic": true, "local": false, "subscription": false, "stateful": 0 },
+                "extra_compute_units": 0
+              },
+              {
+                "name": "validators",
+                "block_parsing": { "parser_arg": ["0"], "parser_func": "PARSE_BY_ARG" },
+                "compute_units": 20,
+                "enabled": true,
+                "category": { "deterministic": false, "local": false, "subscription": false, "stateful": 0 },
+                "extra_compute_units": 0
+              },
+              {
+                "name": "tx",
+                "block_parsing": { "parser_arg": [""], "parser_func": "EMPTY" },
+                "compute_units": 20,
+                "enabled": true,
+                "category": { "deterministic": true, "local": false, "subscription": false, "stateful": 0 },
+                "extra_compute_units": 0
+              },
+              {
+                "name": "status",
+                "block_parsing": { "parser_arg": [""], "parser_func": "EMPTY" },
+                "compute_units": 10,
+                "enabled": true,
+                "category": { "deterministic": false, "local": true, "subscription": false, "stateful": 0 },
+                "extra_compute_units": 0
+              },
+              {
+                "name": "health",
+                "block_parsing": { "parser_arg": [""], "parser_func": "EMPTY" },
+                "compute_units": 10,
+                "enabled": true,
+                "category": { "deterministic": false, "local": true, "subscription": false, "stateful": 0 },
+                "extra_compute_units": 0
+              },
+              {
+                "name": "network_info",
+                "block_parsing": { "parser_arg": [""], "parser_func": "EMPTY" },
+                "compute_units": 10,
+                "enabled": true,
+                "category": { "deterministic": false, "local": true, "subscription": false, "stateful": 0 },
+                "extra_compute_units": 0
+              },
+              {
+                "name": "client_config",
+                "block_parsing": { "parser_arg": [""], "parser_func": "EMPTY" },
+                "compute_units": 10,
+                "enabled": true,
+                "category": { "deterministic": false, "local": true, "subscription": false, "stateful": 0 },
+                "extra_compute_units": 0
+              },
+              {
+                "name": "genesis_config",
+                "block_parsing": { "parser_arg": [""], "parser_func": "EMPTY" },
+                "compute_units": 10,
+                "enabled": true,
+                "category": { "deterministic": true, "local": false, "subscription": false, "stateful": 0 },
+                "extra_compute_units": 0
+              },
+              {
+                "name": "maintenance_windows",
+                "block_parsing": { "parser_arg": [""], "parser_func": "EMPTY" },
+                "compute_units": 10,
+                "enabled": true,
+                "category": { "deterministic": false, "local": false, "subscription": false, "stateful": 0 },
+                "extra_compute_units": 0
+              },
+              {
+                "name": "light_client_proof",
+                "block_parsing": { "parser_arg": [""], "parser_func": "EMPTY" },
+                "compute_units": 20,
+                "enabled": true,
+                "category": { "deterministic": true, "local": false, "subscription": false, "stateful": 0 },
+                "extra_compute_units": 0
+              },
+              {
+                "name": "next_light_client_block",
+                "block_parsing": { "parser_arg": [""], "parser_func": "EMPTY" },
+                "compute_units": 20,
+                "enabled": true,
+                "category": { "deterministic": true, "local": false, "subscription": false, "stateful": 0 },
+                "extra_compute_units": 0
+              },
+              {
+                "name": "send_tx",
+                "block_parsing": { "parser_arg": [""], "parser_func": "EMPTY" },
+                "compute_units": 10,
+                "enabled": true,
+                "timeout_ms": 10000,
+                "category": { "deterministic": false, "local": false, "subscription": false, "stateful": 1, "hanging_api": true },
+                "extra_compute_units": 0
+              },
+              {
+                "name": "broadcast_tx_async",
+                "block_parsing": { "parser_arg": [""], "parser_func": "EMPTY" },
+                "compute_units": 10,
+                "enabled": true,
+                "category": { "deterministic": false, "local": false, "subscription": false, "stateful": 1 },
+                "extra_compute_units": 0
+              },
+              {
+                "name": "broadcast_tx_commit",
+                "block_parsing": { "parser_arg": [""], "parser_func": "EMPTY" },
+                "compute_units": 10,
+                "enabled": true,
+                "timeout_ms": 10000,
+                "category": { "deterministic": false, "local": false, "subscription": false, "stateful": 1, "hanging_api": true },
+                "extra_compute_units": 0
+              },
+              {
+                "name": "EXPERIMENTAL_call_function",
+                "block_parsing": { "parser_arg": ["block_id"], "parser_func": "PARSE_CANONICAL" },
+                "compute_units": 20,
+                "enabled": true,
+                "category": { "deterministic": true, "local": false, "subscription": false, "stateful": 0 },
+                "extra_compute_units": 0
+              },
+              {
+                "name": "EXPERIMENTAL_changes",
+                "block_parsing": { "parser_arg": ["block_id"], "parser_func": "PARSE_CANONICAL" },
+                "compute_units": 20,
+                "enabled": true,
+                "category": { "deterministic": true, "local": false, "subscription": false, "stateful": 0 },
+                "extra_compute_units": 0
+              },
+              {
+                "name": "EXPERIMENTAL_changes_in_block",
+                "block_parsing": { "parser_arg": ["block_id"], "parser_func": "PARSE_CANONICAL" },
+                "compute_units": 20,
+                "enabled": true,
+                "category": { "deterministic": true, "local": false, "subscription": false, "stateful": 0 },
+                "extra_compute_units": 0
+              },
+              {
+                "name": "EXPERIMENTAL_congestion_level",
+                "block_parsing": { "parser_arg": ["latest"], "parser_func": "DEFAULT" },
+                "compute_units": 10,
+                "enabled": true,
+                "category": { "deterministic": false, "local": false, "subscription": false, "stateful": 0 },
+                "extra_compute_units": 0
+              },
+              {
+                "name": "EXPERIMENTAL_genesis_config",
+                "block_parsing": { "parser_arg": [""], "parser_func": "EMPTY" },
+                "compute_units": 10,
+                "enabled": true,
+                "category": { "deterministic": true, "local": false, "subscription": false, "stateful": 0 },
+                "extra_compute_units": 0
+              },
+              {
+                "name": "EXPERIMENTAL_light_client_block_proof",
+                "block_parsing": { "parser_arg": [""], "parser_func": "EMPTY" },
+                "compute_units": 20,
+                "enabled": true,
+                "category": { "deterministic": true, "local": false, "subscription": false, "stateful": 0 },
+                "extra_compute_units": 0
+              },
+              {
+                "name": "EXPERIMENTAL_light_client_proof",
+                "block_parsing": { "parser_arg": [""], "parser_func": "EMPTY" },
+                "compute_units": 20,
+                "enabled": true,
+                "category": { "deterministic": true, "local": false, "subscription": false, "stateful": 0 },
+                "extra_compute_units": 0
+              },
+              {
+                "name": "EXPERIMENTAL_maintenance_windows",
+                "block_parsing": { "parser_arg": [""], "parser_func": "EMPTY" },
+                "compute_units": 10,
+                "enabled": true,
+                "category": { "deterministic": false, "local": false, "subscription": false, "stateful": 0 },
+                "extra_compute_units": 0
+              },
+              {
+                "name": "EXPERIMENTAL_protocol_config",
+                "block_parsing": { "parser_arg": ["block_id"], "parser_func": "PARSE_CANONICAL" },
+                "compute_units": 20,
+                "enabled": true,
+                "category": { "deterministic": true, "local": false, "subscription": false, "stateful": 0 },
+                "extra_compute_units": 0
+              },
+              {
+                "name": "EXPERIMENTAL_receipt",
+                "block_parsing": { "parser_arg": [""], "parser_func": "EMPTY" },
+                "compute_units": 20,
+                "enabled": true,
+                "category": { "deterministic": true, "local": false, "subscription": false, "stateful": 0 },
+                "extra_compute_units": 0
+              },
+              {
+                "name": "EXPERIMENTAL_receipt_to_tx",
+                "block_parsing": { "parser_arg": [""], "parser_func": "EMPTY" },
+                "compute_units": 20,
+                "enabled": true,
+                "category": { "deterministic": true, "local": false, "subscription": false, "stateful": 0 },
+                "extra_compute_units": 0
+              },
+              {
+                "name": "EXPERIMENTAL_split_storage_info",
+                "block_parsing": { "parser_arg": [""], "parser_func": "EMPTY" },
+                "compute_units": 10,
+                "enabled": true,
+                "category": { "deterministic": false, "local": true, "subscription": false, "stateful": 0 },
+                "extra_compute_units": 0
+              },
+              {
+                "name": "EXPERIMENTAL_tx_status",
+                "block_parsing": { "parser_arg": [""], "parser_func": "EMPTY" },
+                "compute_units": 20,
+                "enabled": true,
+                "category": { "deterministic": true, "local": false, "subscription": false, "stateful": 0 },
+                "extra_compute_units": 0
+              },
+              {
+                "name": "EXPERIMENTAL_validators_ordered",
+                "block_parsing": { "parser_arg": ["0"], "parser_func": "PARSE_BY_ARG" },
+                "compute_units": 20,
+                "enabled": true,
+                "category": { "deterministic": false, "local": false, "subscription": false, "stateful": 0 },
+                "extra_compute_units": 0
+              },
+              {
+                "name": "EXPERIMENTAL_view_access_key",
+                "block_parsing": { "parser_arg": ["block_id"], "parser_func": "PARSE_CANONICAL" },
+                "compute_units": 20,
+                "enabled": true,
+                "category": { "deterministic": true, "local": false, "subscription": false, "stateful": 0 },
+                "extra_compute_units": 0
+              },
+              {
+                "name": "EXPERIMENTAL_view_access_key_list",
+                "block_parsing": { "parser_arg": ["block_id"], "parser_func": "PARSE_CANONICAL" },
+                "compute_units": 20,
+                "enabled": true,
+                "category": { "deterministic": true, "local": false, "subscription": false, "stateful": 0 },
+                "extra_compute_units": 0
+              },
+              {
+                "name": "EXPERIMENTAL_view_account",
+                "block_parsing": { "parser_arg": ["block_id"], "parser_func": "PARSE_CANONICAL" },
+                "compute_units": 20,
+                "enabled": true,
+                "category": { "deterministic": true, "local": false, "subscription": false, "stateful": 0 },
+                "extra_compute_units": 0
+              },
+              {
+                "name": "EXPERIMENTAL_view_code",
+                "block_parsing": { "parser_arg": ["block_id"], "parser_func": "PARSE_CANONICAL" },
+                "compute_units": 20,
+                "enabled": true,
+                "category": { "deterministic": true, "local": false, "subscription": false, "stateful": 0 },
+                "extra_compute_units": 0
+              },
+              {
+                "name": "EXPERIMENTAL_view_gas_key_nonces",
+                "block_parsing": { "parser_arg": ["latest"], "parser_func": "DEFAULT" },
+                "compute_units": 10,
+                "enabled": true,
+                "category": { "deterministic": false, "local": false, "subscription": false, "stateful": 0 },
+                "extra_compute_units": 0
+              },
+              {
+                "name": "EXPERIMENTAL_view_state",
+                "block_parsing": { "parser_arg": ["block_id"], "parser_func": "PARSE_CANONICAL" },
+                "compute_units": 20,
+                "enabled": true,
+                "category": { "deterministic": true, "local": false, "subscription": false, "stateful": 0 },
+                "extra_compute_units": 0
+              }
+            ],
+            "headers": [],
+            "inheritance_apis": [],
+            "parse_directives": [
+              {
+                "function_tag": "GET_BLOCKNUM",
+                "function_template": "{\"jsonrpc\":\"2.0\",\"method\":\"block\",\"params\":{\"finality\":\"final\"},\"id\":1}",
+                "result_parsing": {
+                  "parser_arg": ["0", "header", "height"],
+                  "parser_func": "PARSE_CANONICAL"
+                },
+                "api_name": "block"
+              },
+              {
+                "function_tag": "GET_BLOCK_BY_NUM",
+                "function_template": "{\"jsonrpc\":\"2.0\",\"method\":\"block\",\"params\":{\"block_id\":%d},\"id\":1}",
+                "result_parsing": {
+                  "parser_arg": ["0", "header", "hash"],
+                  "parser_func": "PARSE_CANONICAL"
+                },
+                "api_name": "block"
+              },
+              {
+                "function_tag": "GET_EARLIEST_BLOCK",
+                "function_template": "{\"jsonrpc\":\"2.0\",\"method\":\"status\",\"params\":[],\"id\":1}",
+                "result_parsing": {
+                  "parser_arg": ["0", "sync_info", "earliest_block_height"],
+                  "parser_func": "PARSE_CANONICAL"
+                },
+                "api_name": "status"
+              }
+            ],
+            "verifications": [
+              {
+                "name": "chain-id",
+                "parse_directive": {
+                  "function_template": "{\"jsonrpc\":\"2.0\",\"method\":\"status\",\"params\":[],\"id\":1}",
+                  "function_tag": "VERIFICATION",
+                  "result_parsing": {
+                    "parser_arg": ["0", "chain_id"],
+                    "parser_func": "PARSE_CANONICAL"
+                  },
+                  "api_name": "status"
+                },
+                "values": [
+                  {
+                    "expected_value": "mainnet"
+                  }
+                ]
+              },
+              {
+                "name": "pruning",
+                "parse_directive": {
+                  "function_tag": "GET_EARLIEST_BLOCK"
+                },
+                "values": [
+                  {
+                    "latest_distance": 100000
+                  },
+                  {
+                    "extension": "archive",
+                    "expected_value": "9820210"
+                  }
+                ]
+              }
+            ],
+            "extensions": [
+              {
+                "name": "archive",
+                "cu_multiplier": 5,
+                "rule": {
+                  "block": 100000
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "index": "NEART",
+        "name": "near testnet",
+        "enabled": true,
+        "imports": [
+          "NEAR"
+        ],
+        "reliability_threshold": 268435455,
+        "data_reliability_enabled": true,
+        "block_distance_for_finalized_data": 2,
+        "blocks_in_finalization_proof": 1,
+        "average_block_time": 600,
+        "allowed_block_lag_for_qos_sync": 17,
+        "shares": 1,
+        "min_stake_provider": {
+          "denom": "ulava",
+          "amount": "5000000000"
+        },
+        "api_collections": [
+          {
+            "enabled": true,
+            "collection_data": {
+              "api_interface": "jsonrpc",
+              "internal_path": "",
+              "type": "POST",
+              "add_on": ""
+            },
+            "apis": [],
+            "verifications": [
+              {
+                "name": "chain-id",
+                "values": [
+                  {
+                    "expected_value": "testnet"
+                  }
+                ]
+              },
+              {
+                "name": "pruning",
+                "values": [
+                  {
+                    "extension": "archive",
+                    "expected_value": "42376888"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "deposit": "10000000ulava"
+}
