@@ -454,7 +454,7 @@
                 "compute_units": 10,
                 "enabled": true,
                 "category": {
-                  "deterministic": true,
+                  "deterministic": false,
                   "local": false,
                   "subscription": false,
                   "stateful": 0
@@ -469,7 +469,7 @@
                   ],
                   "parser_func": "DEFAULT"
                 },
-                "compute_units": 10,
+                "compute_units": 100,
                 "enabled": true,
                 "category": {
                   "deterministic": true,
@@ -477,7 +477,8 @@
                   "subscription": false,
                   "stateful": 0
                 },
-                "extra_compute_units": 0
+                "extra_compute_units": 0,
+                "timeout_ms": 3000
               },
               {
                 "name": "/info/hashrate/history",
@@ -490,7 +491,7 @@
                 "compute_units": 60,
                 "enabled": true,
                 "category": {
-                  "deterministic": true,
+                  "deterministic": false,
                   "local": false,
                   "subscription": false,
                   "stateful": 0
@@ -508,7 +509,7 @@
                 "compute_units": 60,
                 "enabled": true,
                 "category": {
-                  "deterministic": true,
+                  "deterministic": false,
                   "local": false,
                   "subscription": false,
                   "stateful": 0
@@ -647,11 +648,23 @@
             "parse_directives": [
               {
                 "function_tag": "GET_BLOCKNUM",
-                "function_template": "/info/blockdag",
+                "function_template": "/info/virtual-chain-blue-score",
                 "result_parsing": {
                   "parser_arg": [
                     "0",
-                    "virtualDaaScore"
+                    "blueScore"
+                  ],
+                  "parser_func": "PARSE_CANONICAL"
+                },
+                "api_name": "/info/virtual-chain-blue-score"
+              },
+              {
+                "function_tag": "GET_BLOCK_BY_NUM",
+                "function_template": "/info/blockdag?ignored=%d",
+                "result_parsing": {
+                  "parser_arg": [
+                    "0",
+                    "sink"
                   ],
                   "parser_func": "PARSE_CANONICAL"
                 },
