@@ -105,7 +105,7 @@ If the user is vague ("add Polygon"), ask. Don't proceed until you have at minim
 
 Before dispatching, read `references/phase1-research.md` end-to-end (full-read, observe `END-OF-PHASE1-SENTINEL`). It contains the blockchain-analysis framework, third-party-API decision tree, index-naming conventions, and API-discovery patterns that inform how to brief the research agents. Subagents will not read this file themselves — you (the orchestrator) extract the relevant context from it and weave it into each agent prompt's `{chain_name}`, `{docs_url}`, etc. substitutions.
 
-Dispatch five research agents in parallel via a SINGLE message with five Agent tool calls. Each agent runs in the background (`run_in_background: true`) and uses `subagent_type: general-purpose`.
+Dispatch five research agents in parallel via a SINGLE message with five Agent tool calls. Each uses `subagent_type: general-purpose`. Dispatch them in the **foreground** (do NOT set `run_in_background`) — the five calls still run concurrently, but the tool-use keeps your turn open until all five return. This matters in the unattended CI runner: it has no interactive event loop, so the moment you end a turn with work still pending it terminates and reports success with no spec produced. **Never call `ScheduleWakeup`, and never end your turn while subagents are still running — when you have nothing to do but wait, you are waiting, not done.**
 
 Read the five agent prompt files first (full-read with sentinel verification, where applicable):
 
@@ -120,14 +120,14 @@ Substitute placeholders (`{chain_name}`, `{chain_index_lower}`, `{docs_url}`, `{
 Dispatch all five in a single message:
 
 ```
-Agent(description: "Research api-docs for {chain}", subagent_type: "general-purpose", model: "sonnet", run_in_background: true, prompt: <api-docs-researcher.md with placeholders substituted>)
-Agent(description: "Research chain metadata for {chain}", subagent_type: "general-purpose", model: "sonnet", run_in_background: true, prompt: <chain-metadata-researcher.md with placeholders substituted>)
-Agent(description: "Find upstream parent spec for {chain}", subagent_type: "general-purpose", model: "sonnet", run_in_background: true, prompt: <upstream-spec-scout.md with placeholders substituted>)
-Agent(description: "Detect plugins/extensions for {chain}", subagent_type: "general-purpose", model: "sonnet", run_in_background: true, prompt: <plugin-researcher.md with placeholders substituted>)
-Agent(description: "Research archive/prune for {chain}", subagent_type: "general-purpose", model: "sonnet", run_in_background: true, prompt: <archive-researcher.md with placeholders substituted>)
+Agent(description: "Research api-docs for {chain}", subagent_type: "general-purpose", model: "sonnet", prompt: <api-docs-researcher.md with placeholders substituted>)
+Agent(description: "Research chain metadata for {chain}", subagent_type: "general-purpose", model: "sonnet", prompt: <chain-metadata-researcher.md with placeholders substituted>)
+Agent(description: "Find upstream parent spec for {chain}", subagent_type: "general-purpose", model: "sonnet", prompt: <upstream-spec-scout.md with placeholders substituted>)
+Agent(description: "Detect plugins/extensions for {chain}", subagent_type: "general-purpose", model: "sonnet", prompt: <plugin-researcher.md with placeholders substituted>)
+Agent(description: "Research archive/prune for {chain}", subagent_type: "general-purpose", model: "sonnet", prompt: <archive-researcher.md with placeholders substituted>)
 ```
 
-When all five agents complete (you will receive notifications), collect their reports and **write a consolidated research brief to `/tmp/<chain_index_lower>_research_brief.md`** — this is the file the Phase 4 `spec-builder` subagent reads, so it must be self-contained. From the four non-archive reports, distill what synthesis needs: the method union with per-method source tags (researcher / scout / both), network params (including the resolved `average_block_time`), inheritance/template hints, and the plugin/addon list. Do NOT retain all five full reports in your own context — the brief on disk plus the `/tmp/<chain_index_lower>_methods.txt` and `_directives.txt` files are the handoff. (The archive report is the one exception — it must still be printed verbatim per the requirement immediately below, and its resolved decisions are passed to spec-builder as explicit inputs.)
+When all five agents return (the foreground dispatch blocks your turn until they do), collect their reports and **write a consolidated research brief to `/tmp/<chain_index_lower>_research_brief.md`** — this is the file the Phase 4 `spec-builder` subagent reads, so it must be self-contained. From the four non-archive reports, distill what synthesis needs: the method union with per-method source tags (researcher / scout / both), network params (including the resolved `average_block_time`), inheritance/template hints, and the plugin/addon list. Do NOT retain all five full reports in your own context — the brief on disk plus the `/tmp/<chain_index_lower>_methods.txt` and `_directives.txt` files are the handoff. (The archive report is the one exception — it must still be printed verbatim per the requirement immediately below, and its resolved decisions are passed to spec-builder as explicit inputs.)
 
 **Before proceeding to Phase 4, print the archive-researcher's full report to the user verbatim — copy the entire block between `=== ARCHIVE RESEARCHER ===` and `END-OF-ARCHIVE-RESEARCHER-SENTINEL` into your response. Do NOT paraphrase, summarize, or condense any section.**
 
@@ -247,18 +247,18 @@ Gather inputs:
 - `<retention_blocks>` — integer block count from archive-researcher's `retention_blocks` output, or the literal `unknown`. Passed to `pruning-validator`.
 - `<research_unsupported>` — distilled list of methods research explicitly flagged unsupported/deprecated/`-32601` (from api-docs-researcher / plugin-researcher reports). May be empty. Passed to `enabled-validator`.
 
-**Dispatch all 9 in a single message, each with `subagent_type: general-purpose`, `run_in_background: true`, NO `isolation`.** Validators run on `haiku` by default (deterministic-leaning, several jq-backed); the three semantic gates — `cu-semantic`, `parse-directive`, `methods-coverage` — are marked `sonnet` because they involve judgment. Downgrade those three to `haiku` for max savings, or upgrade the rest to `sonnet` if Phase 6 lets defects through:
+**Dispatch all 9 in a single message, each with `subagent_type: general-purpose`, in the foreground (do NOT set `run_in_background`), NO `isolation`.** Validators run on `haiku` by default (deterministic-leaning, several jq-backed); the three semantic gates — `cu-semantic`, `parse-directive`, `methods-coverage` — are marked `sonnet` because they involve judgment. Downgrade those three to `haiku` for max savings, or upgrade the rest to `sonnet` if Phase 6 lets defects through:
 
 ```
-Agent(description: "Gate: methods coverage", subagent_type: "general-purpose", model: "sonnet", run_in_background: true, prompt: <methods-coverage-validator.md with placeholders substituted>)
-Agent(description: "Gate: parse directives", subagent_type: "general-purpose", model: "sonnet", run_in_background: true, prompt: <parse-directive-validator.md with placeholders substituted>)
-Agent(description: "Gate: chain metadata", subagent_type: "general-purpose", model: "haiku", run_in_background: true, prompt: <chain-metadata-validator.md with placeholders substituted>)
-Agent(description: "Gate: verifications", subagent_type: "general-purpose", model: "haiku", run_in_background: true, prompt: <verifications-validator.md with placeholders substituted>)
-Agent(description: "Gate: extensions", subagent_type: "general-purpose", model: "haiku", run_in_background: true, prompt: <extensions-validator.md with placeholders substituted>)
-Agent(description: "Gate: cu semantic", subagent_type: "general-purpose", model: "sonnet", run_in_background: true, prompt: <cu-semantic-validator.md with placeholders substituted>)
-Agent(description: "Gate: pruning", subagent_type: "general-purpose", model: "haiku", run_in_background: true, prompt: <pruning-validator.md with placeholders substituted>)
-Agent(description: "Gate: enabled", subagent_type: "general-purpose", model: "haiku", run_in_background: true, prompt: <enabled-validator.md with placeholders substituted>)
-Agent(description: "Gate: method schema", subagent_type: "general-purpose", model: "haiku", run_in_background: true, prompt: <method-schema-validator.md with placeholders substituted>)
+Agent(description: "Gate: methods coverage", subagent_type: "general-purpose", model: "sonnet", prompt: <methods-coverage-validator.md with placeholders substituted>)
+Agent(description: "Gate: parse directives", subagent_type: "general-purpose", model: "sonnet", prompt: <parse-directive-validator.md with placeholders substituted>)
+Agent(description: "Gate: chain metadata", subagent_type: "general-purpose", model: "haiku", prompt: <chain-metadata-validator.md with placeholders substituted>)
+Agent(description: "Gate: verifications", subagent_type: "general-purpose", model: "haiku", prompt: <verifications-validator.md with placeholders substituted>)
+Agent(description: "Gate: extensions", subagent_type: "general-purpose", model: "haiku", prompt: <extensions-validator.md with placeholders substituted>)
+Agent(description: "Gate: cu semantic", subagent_type: "general-purpose", model: "sonnet", prompt: <cu-semantic-validator.md with placeholders substituted>)
+Agent(description: "Gate: pruning", subagent_type: "general-purpose", model: "haiku", prompt: <pruning-validator.md with placeholders substituted>)
+Agent(description: "Gate: enabled", subagent_type: "general-purpose", model: "haiku", prompt: <enabled-validator.md with placeholders substituted>)
+Agent(description: "Gate: method schema", subagent_type: "general-purpose", model: "haiku", prompt: <method-schema-validator.md with placeholders substituted>)
 ```
 
 ### Aggregate + single-pass fixer
