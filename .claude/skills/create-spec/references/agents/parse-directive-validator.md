@@ -19,15 +19,13 @@ You are a subagent dispatched by the create-spec orchestrator to perform Phase 6
 
 Compare the candidate's parse_directives against the canonical matrix below for the given `(api_interface, chain_family)`.
 
-**Boot-critical presence check — runs for EVERY family, whether or not it is in the matrix, BEFORE anything else.** The smart-router chain tracker cannot initialize without both `GET_BLOCKNUM` and `GET_BLOCK_BY_NUM` parse_directives, so their absence is a hard FAIL on every interface and family:
+**Boot-critical presence check — runs for EVERY family, whether or not it is in the matrix, BEFORE anything else.** The smart-router chain tracker cannot initialize without both `GET_BLOCKNUM` and `GET_BLOCK_BY_NUM` parse_directives. But these are frequently **inherited** — EVM L2s import them from ETH1, Cosmos chains from COSMOSSDK/TENDERMINT — so an inheritance-based candidate's own `parse_directives` arrays are empty *by design* (see the matrix notes below). A literal check of the candidate file alone therefore false-FAILs every such spec. Use the inheritance-aware checker, which resolves the candidate's `imports` graph across the sibling specs in the working tree and checks the UNION of the candidate plus all transitive parents:
 
 ```bash
-jq -r '[.proposal.specs[].api_collections[].parse_directives[]?.function_tag] as $tags
-  | (["GET_BLOCKNUM","GET_BLOCK_BY_NUM"] - $tags)
-  | if length==0 then "OK" else "FAIL missing: \(.)" end' <spec_path>
+bash .claude/skills/create-spec/scripts/check_directive_presence.sh <spec_path>
 ```
 
-Any output other than `OK` → Layer 1 FAIL; record the missing tag(s) and do NOT downgrade this to SKIPPED. This is authoritative even when the family is unknown.
+Output `OK` → pass. `FAIL missing: <tags> (checked indexes: …)` → Layer 1 FAIL; record the missing tag(s). The script hard-FAILs ONLY when `GET_BLOCKNUM`/`GET_BLOCK_BY_NUM` are absent across the candidate AND every spec it transitively imports — so it passes correct inheritance-based specs while still catching a standalone spec that genuinely lacks them. Do NOT downgrade a real FAIL to SKIPPED. This is authoritative even when the family is unknown.
 
 The `GET_BLOCK_BY_NUM` directive's `function_template` must also carry a numeric placeholder (`%d`, `%x`, or `0x%x`) — without one the router cannot drive it by block number:
 

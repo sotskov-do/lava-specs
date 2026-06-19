@@ -1,6 +1,6 @@
 ---
 name: create-spec
-description: "Generate a single Lava chain spec JSON file at <chain>.json containing both mainnet and testnet entries under one proposal.specs[] array. Use when the user asks to add support for a new blockchain, create or build a chain spec, or onboard a chain to Lava. Runs a 12-phase pipeline with parallel research agents, formula-gated synthesis, autonomous jq validation, a dockerized smart-router boot + multi-node method probing, and parallel /review-spec reviewers."
+description: "Use when the user asks to add support for a new blockchain, create or build a Lava chain spec, or onboard a chain to Lava. Produces a single <chain>.json with both mainnet and testnet entries under one proposal.specs[] array."
 ---
 
 # Create Spec — Lava Chain Specification
@@ -135,7 +135,7 @@ When all five agents return (the foreground dispatch blocks your turn until they
 
 **On `status: NEEDS_HUMAN_DECISION`**: STOP. Quote the `## Conflicts` section and any Recommendation rows marked `chain-discretion` from the report you just printed, and ask the user to make a call on each — specifically: (a) include or omit the `archive` extension on mainnet, (b) include or omit on testnet, (c) the `rule.block` value if mainnet uses archive, (d) the `pruning` verification `expected_value` if it isn't `*`. Record their decisions and use them as Phase-3 inputs when proceeding to Phase 4.
 
-**On `status: OK`**: keep the `## Recommendation` block in working memory and consult it when constructing the spec in Phase 4 — specifically, it determines (a) whether the spec's mainnet entry includes an `archive` extension on the primary api_collection, (b) whether the testnet entry does, (c) the `rule.block` integer value on any archive extension, and (d) the `pruning` verification's `values[0].expected_value` (almost always `"*"`).
+**On `status: OK`**: keep the `## Recommendation` block in working memory and consult it when constructing the spec in Phase 4 — specifically, it determines (a) whether the spec's mainnet entry includes an `archive` extension on the primary api_collection, (b) whether the testnet entry does, (c) the `rule.block` integer value on any archive extension, and (d) the `pruning` verification's archive-tier `expected_value` — the value on the `extension: "archive"` entry (e.g. `values[1]`, NOT `values[0]`, which holds `latest_distance`); commonly `"*"` (wildcard) for non-EVM, or a concrete response like `"0x0"` for the EVM gold (see ETH1).
 
 Then proceed to Phase 4.
 
@@ -266,11 +266,11 @@ Agent(description: "Gate: method schema", subagent_type: "general-purpose", mode
 Wait for all 9 subagents to return. Parse each one's last `RESULT: PASS | FAIL` line.
 
 **Severity routing.** Three of the nine gates emit ADVISORY findings in addition to their `RESULT` line:
-- `cu-semantic` — its Layer-2 ADVISORY rows (out-of-band CU). These DO feed the fixer as suggested CU adjustments.
+- `cu-semantic` — its Layer-1 ADVISORY rows (out-of-band CU). These DO feed the fixer as suggested CU adjustments.
 - `enabled` — its WATCH-LIST rows. These do NOT feed the fixer (never auto-disable — free-tier caveat). Print them to the user and carry them into Phase 8 as a probe watch-list.
 - `pruning` — when it prints `INFO: retention unknown`, treat as PASS (no fix); print the INFO to the user.
 
-A gate's `RESULT: FAIL` (cu-semantic Layer-0 subscription-CU violation or Layer-1 anomaly, pruning >3× off, or any existing hard gate) routes to the fixer as a must-fix. The `enabled` gate's `RESULT` is always PASS.
+A gate's `RESULT: FAIL` (cu-semantic Layer-0 subscription-CU violation, pruning >3× off, or any existing hard gate) routes to the fixer as a must-fix. The `enabled` gate's `RESULT` is always PASS.
 
 **If all 9 RESULTS are PASS**: print a single-line summary to the user (`Phase 6: all 9 gates PASS`) and proceed to Phase 7 (still printing any advisory cu-semantic / enabled-watch-list rows).
 
@@ -284,7 +284,7 @@ A gate's `RESULT: FAIL` (cu-semantic Layer-0 subscription-CU violation or Layer-
    > [paste deduplicated FAIL list with the per-gate sections from the parallel-gate reports]
    >
    > In addition to the FAIL list, the following are ADVISORY CU suggestions from the cu-semantic gate — apply them ONLY if they are clearly correct (a method's CU obviously outside its semantic band); skip any you are unsure about:
-   > [paste cu-semantic Layer-2 ADVISORY rows, or "none"]
+   > [paste cu-semantic Layer-1 ADVISORY rows, or "none"]
    >
    > Return a markdown summary of every change in the format:
    > `- <gate>:<row> — <one-sentence description of fix>`
