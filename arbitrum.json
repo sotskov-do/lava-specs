@@ -253,9 +253,9 @@
                                 "name": "eth_getRawTransactionByHash",
                                 "block_parsing": {
                                     "parser_arg": [
-                                        "0"
+                                        "latest"
                                     ],
-                                    "parser_func": "PARSE_BY_ARG"
+                                    "parser_func": "DEFAULT"
                                 },
                                 "compute_units": 20,
                                 "enabled": true,
@@ -660,7 +660,7 @@
                                     ],
                                     "parser_func": "PARSE_BY_ARG"
                                 },
-                                "compute_units": 100,
+                                "compute_units": 200,
                                 "enabled": true,
                                 "category": {
                                     "deterministic": true,
@@ -678,7 +678,7 @@
                                     ],
                                     "parser_func": "PARSE_BY_ARG"
                                 },
-                                "compute_units": 100,
+                                "compute_units": 200,
                                 "enabled": true,
                                 "category": {
                                     "deterministic": true,
@@ -696,7 +696,7 @@
                                     ],
                                     "parser_func": "PARSE_BY_ARG"
                                 },
-                                "compute_units": 100,
+                                "compute_units": 200,
                                 "enabled": true,
                                 "category": {
                                     "deterministic": true,
@@ -710,11 +710,11 @@
                                 "name": "arbtrace_transaction",
                                 "block_parsing": {
                                     "parser_arg": [
-                                        "0"
+                                        "latest"
                                     ],
-                                    "parser_func": "PARSE_BY_ARG"
+                                    "parser_func": "DEFAULT"
                                 },
-                                "compute_units": 100,
+                                "compute_units": 200,
                                 "enabled": true,
                                 "category": {
                                     "deterministic": true,
@@ -733,7 +733,7 @@
                                     ],
                                     "parser_func": "PARSE_CANONICAL"
                                 },
-                                "compute_units": 100,
+                                "compute_units": 200,
                                 "enabled": true,
                                 "category": {
                                     "deterministic": true,
@@ -747,11 +747,11 @@
                                 "name": "arbtrace_get",
                                 "block_parsing": {
                                     "parser_arg": [
-                                        "0"
+                                        "latest"
                                     ],
-                                    "parser_func": "PARSE_BY_ARG"
+                                    "parser_func": "DEFAULT"
                                 },
-                                "compute_units": 100,
+                                "compute_units": 200,
                                 "enabled": true,
                                 "category": {
                                     "deterministic": true,
@@ -765,11 +765,11 @@
                                 "name": "arbtrace_replayTransaction",
                                 "block_parsing": {
                                     "parser_arg": [
-                                        "0"
+                                        "latest"
                                     ],
-                                    "parser_func": "PARSE_BY_ARG"
+                                    "parser_func": "DEFAULT"
                                 },
-                                "compute_units": 100,
+                                "compute_units": 200,
                                 "enabled": true,
                                 "category": {
                                     "deterministic": true,
@@ -787,7 +787,7 @@
                                     ],
                                     "parser_func": "PARSE_BY_ARG"
                                 },
-                                "compute_units": 100,
+                                "compute_units": 500,
                                 "enabled": true,
                                 "category": {
                                     "deterministic": true,
