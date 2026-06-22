@@ -13,7 +13,7 @@
         "reliability_threshold": 268435455,
         "data_reliability_enabled": true,
         "block_distance_for_finalized_data": 1,
-        "blocks_in_finalization_proof": 3,
+        "blocks_in_finalization_proof": 1,
         "average_block_time": 440,
         "allowed_block_lag_for_qos_sync": 23,
         "shares": 1,
@@ -53,9 +53,9 @@
                 "name": "eth_getRawTransactionByHash",
                 "block_parsing": {
                   "parser_arg": [
-                    "0"
+                    "latest"
                   ],
-                  "parser_func": "PARSE_BY_ARG"
+                  "parser_func": "DEFAULT"
                 },
                 "compute_units": 20,
                 "enabled": true,
@@ -71,9 +71,9 @@
                 "name": "eth_getRawTransactionByBlockHashAndIndex",
                 "block_parsing": {
                   "parser_arg": [
-                    "0"
+                    "latest"
                   ],
-                  "parser_func": "PARSE_BY_ARG"
+                  "parser_func": "DEFAULT"
                 },
                 "compute_units": 20,
                 "enabled": true,
@@ -167,7 +167,7 @@
                   ],
                   "parser_func": "DEFAULT"
                 },
-                "compute_units": 10,
+                "compute_units": 5000,
                 "enabled": true,
                 "category": {
                   "deterministic": false,
@@ -278,9 +278,9 @@
         "reliability_threshold": 268435455,
         "data_reliability_enabled": true,
         "block_distance_for_finalized_data": 1,
-        "blocks_in_finalization_proof": 3,
-        "average_block_time": 440,
-        "allowed_block_lag_for_qos_sync": 23,
+        "blocks_in_finalization_proof": 1,
+        "average_block_time": 25000,
+        "allowed_block_lag_for_qos_sync": 1,
         "shares": 1,
         "min_stake_provider": {
           "denom": "ulava",
