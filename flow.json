@@ -175,9 +175,9 @@
                 },
                 "block_parsing": {
                   "parser_arg": [
-                    "0"
+                    "latest"
                   ],
-                  "parser_func": "PARSE_BY_ARG"
+                  "parser_func": "DEFAULT"
                 }
               },
               {
@@ -209,9 +209,9 @@
                 },
                 "block_parsing": {
                   "parser_arg": [
-                    "0"
+                    "latest"
                   ],
-                  "parser_func": "PARSE_BY_ARG"
+                  "parser_func": "DEFAULT"
                 }
               },
               {
@@ -272,6 +272,20 @@
                     "expected_value": "0x2eb"
                   }
                 ]
+              },
+              {
+                "name": "enabled",
+                "parse_directive": {
+                  "function_template": "{\"jsonrpc\":\"2.0\",\"method\":\"debug_traceBlockByNumber\",\"params\":[\"latest\", {\"tracer\": \"callTracer\"}],\"id\":1}",
+                  "function_tag": "VERIFICATION",
+                  "result_parsing": {
+                    "parser_arg": ["0"],
+                    "parser_func": "PARSE_BY_ARG",
+                    "encoding": "hex"
+                  },
+                  "api_name": "debug_traceBlockByNumber"
+                },
+                "values": [{"expected_value": "*"}]
               }
             ]
           },
@@ -456,8 +470,8 @@
         "data_reliability_enabled": true,
         "block_distance_for_finalized_data": 1,
         "blocks_in_finalization_proof": 1,
-        "average_block_time": 800,
-        "allowed_block_lag_for_qos_sync": 13,
+        "average_block_time": 500,
+        "allowed_block_lag_for_qos_sync": 20,
         "shares": 1,
         "min_stake_provider": {
           "denom": "ulava",
@@ -484,6 +498,44 @@
                     "expected_value": "0x221"
                   }
                 ]
+              }
+            ]
+          },
+          {
+            "enabled": true,
+            "collection_data": {
+              "api_interface": "jsonrpc",
+              "internal_path": "",
+              "type": "POST",
+              "add_on": "txpool"
+            },
+            "apis": [],
+            "headers": [],
+            "inheritance_apis": [],
+            "parse_directives": [],
+            "verifications": [
+              {
+                "name": "chain-id",
+                "values": [{"expected_value": "0x221"}]
+              }
+            ]
+          },
+          {
+            "enabled": true,
+            "collection_data": {
+              "api_interface": "jsonrpc",
+              "internal_path": "",
+              "type": "POST",
+              "add_on": "debug"
+            },
+            "apis": [],
+            "headers": [],
+            "inheritance_apis": [],
+            "parse_directives": [],
+            "verifications": [
+              {
+                "name": "chain-id",
+                "values": [{"expected_value": "0x221"}]
               }
             ]
           }
