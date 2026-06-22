@@ -39,7 +39,7 @@
                 "compute_units": 10,
                 "enabled": true,
                 "category": {
-                  "deterministic": false,
+                  "deterministic": true,
                   "local": false,
                   "subscription": false,
                   "stateful": 0
@@ -372,7 +372,7 @@
                   ],
                   "parser_func": "DEFAULT"
                 },
-                "compute_units": 10,
+                "compute_units": 60,
                 "enabled": true,
                 "category": {
                   "deterministic": true,
@@ -392,7 +392,7 @@
                   ],
                   "parser_func": "PARSE_DICTIONARY_OR_ORDERED"
                 },
-                "compute_units": 20,
+                "compute_units": 100,
                 "enabled": true,
                 "category": {
                   "deterministic": true,
@@ -412,7 +412,7 @@
                   ],
                   "parser_func": "PARSE_DICTIONARY_OR_ORDERED"
                 },
-                "compute_units": 20,
+                "compute_units": 100,
                 "enabled": true,
                 "category": {
                   "deterministic": true,
@@ -592,17 +592,16 @@
                 "api_name": "/v2/status"
               },
               {
-                "function_template": "/v2/blocks/%d",
+                "function_template": "/v2/blocks/%d/hash",
                 "function_tag": "GET_BLOCK_BY_NUM",
                 "result_parsing": {
                   "parser_arg": [
                     "0",
-                    "block",
-                    "rnd"
+                    "blockHash"
                   ],
                   "parser_func": "PARSE_CANONICAL"
                 },
-                "api_name": "/v2/blocks/{round}"
+                "api_name": "/v2/blocks/{round}/hash"
               },
               {
                 "function_template": "/v2/blocks/1",
@@ -696,14 +695,14 @@
                 "name": "/v2/teal/compile",
                 "block_parsing": {
                   "parser_arg": [
-                    "latest"
+                    ""
                   ],
-                  "parser_func": "DEFAULT"
+                  "parser_func": "EMPTY"
                 },
                 "compute_units": 10,
                 "enabled": true,
                 "category": {
-                  "deterministic": false,
+                  "deterministic": true,
                   "local": false,
                   "subscription": false,
                   "stateful": 0
@@ -714,14 +713,14 @@
                 "name": "/v2/teal/disassemble",
                 "block_parsing": {
                   "parser_arg": [
-                    "latest"
+                    ""
                   ],
-                  "parser_func": "DEFAULT"
+                  "parser_func": "EMPTY"
                 },
                 "compute_units": 10,
                 "enabled": true,
                 "category": {
-                  "deterministic": false,
+                  "deterministic": true,
                   "local": false,
                   "subscription": false,
                   "stateful": 0
@@ -805,6 +804,10 @@
               {
                 "name": "X-Algo-API-Token",
                 "kind": "pass_send"
+              },
+              {
+                "name": "content-type",
+                "kind": "pass_send"
               }
             ],
             "inheritance_apis": [],
@@ -846,18 +849,6 @@
             "verifications": [
               {
                 "name": "chain-id",
-                "parse_directive": {
-                  "function_template": "/v2/transactions/params",
-                  "function_tag": "VERIFICATION",
-                  "result_parsing": {
-                    "parser_arg": [
-                      "0",
-                      "genesis-id"
-                    ],
-                    "parser_func": "PARSE_CANONICAL"
-                  },
-                  "api_name": "/v2/transactions/params"
-                },
                 "values": [
                   {
                     "expected_value": "testnet-v1.0"
