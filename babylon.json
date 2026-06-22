@@ -1463,27 +1463,6 @@
                             },
                             {
                                 "enabled": true,
-                                "name": "/cosmos/tx/v1beta1/decode/amino",
-                                "compute_units": 10,
-                                "extra_compute_units": 0,
-                                "category": {
-                                    "deterministic": true,
-                                    "local": false,
-                                    "subscription": false,
-                                    "stateful": 0,
-                                    "hanging_api": false
-                                },
-                                "block_parsing": {
-                                    "parser_arg": [
-                                        "latest"
-                                    ],
-                                    "parser_func": "DEFAULT",
-                                    "default_value": "",
-                                    "encoding": ""
-                                }
-                            },
-                            {
-                                "enabled": true,
                                 "name": "/ibc/apps/transfer/v1/denoms/{denom}/total_escrow",
                                 "compute_units": 10,
                                 "extra_compute_units": 0,
@@ -3055,6 +3034,43 @@
                                 }
                             }
                         ]
+                    },
+                    {
+                        "enabled": true,
+                        "collection_data": {
+                            "api_interface": "rest",
+                            "internal_path": "",
+                            "type": "POST",
+                            "add_on": ""
+                        },
+                        "apis": [
+                            {
+                                "enabled": true,
+                                "name": "/cosmos/tx/v1beta1/decode/amino",
+                                "compute_units": 10,
+                                "extra_compute_units": 0,
+                                "category": {
+                                    "deterministic": true,
+                                    "local": false,
+                                    "subscription": false,
+                                    "stateful": 1,
+                                    "hanging_api": false
+                                },
+                                "block_parsing": {
+                                    "parser_arg": [
+                                        "latest"
+                                    ],
+                                    "parser_func": "DEFAULT",
+                                    "default_value": "",
+                                    "encoding": ""
+                                }
+                            }
+                        ],
+                        "headers": [],
+                        "inheritance_apis": [],
+                        "parse_directives": [],
+                        "verifications": [],
+                        "extensions": []
                     }
                 ]
             },
