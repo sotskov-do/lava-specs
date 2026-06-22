@@ -81,7 +81,8 @@
                                     "deterministic": false,
                                     "local": false,
                                     "subscription": false,
-                                    "stateful": 1
+                                    "stateful": 1,
+                                    "hanging_api": true
                                 },
                                 "extra_compute_units": 0
                             },
@@ -886,7 +887,7 @@
                                 "name": "debug_traceChain",
                                 "block_parsing": {
                                     "parser_arg": [
-                                        "1"
+                                        "0"
                                     ],
                                     "parser_func": "PARSE_BY_ARG"
                                 },
@@ -1012,7 +1013,13 @@
                                 ]
                             }
                         ],
-                        "extensions": []
+                        "extensions": [
+                            {
+                                "name": "archive",
+                                "cu_multiplier": 5,
+                                "rule": { "block": 90000 }
+                            }
+                        ]
                     }
                 ]
             },
