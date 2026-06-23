@@ -645,9 +645,6 @@
                 },
                 "values": [
                   {
-                    "latest_distance": 1321
-                  },
-                  {
                     "extension": "archive",
                     "expected_value": "*"
                   }
