@@ -994,7 +994,12 @@
                                 },
                                 "compute_units": 15,
                                 "enabled": false,
-                                "category": {}
+                                "category": {
+                                    "deterministic": false,
+                                    "local": false,
+                                    "subscription": false,
+                                    "stateful": 0
+                                }
                             },
                             {
                                 "name": "eth_getUncleByBlockNumberAndIndex",
@@ -1006,7 +1011,12 @@
                                 },
                                 "compute_units": 15,
                                 "enabled": false,
-                                "category": {}
+                                "category": {
+                                    "deterministic": false,
+                                    "local": false,
+                                    "subscription": false,
+                                    "stateful": 0
+                                }
                             },
                             {
                                 "name": "eth_getUncleCountByBlockHash",
@@ -1018,7 +1028,12 @@
                                 },
                                 "compute_units": 20,
                                 "enabled": false,
-                                "category": {}
+                                "category": {
+                                    "deterministic": false,
+                                    "local": false,
+                                    "subscription": false,
+                                    "stateful": 0
+                                }
                             },
                             {
                                 "name": "eth_getUncleCountByBlockNumber",
@@ -1030,7 +1045,12 @@
                                 },
                                 "compute_units": 10,
                                 "enabled": false,
-                                "category": {}
+                                "category": {
+                                    "deterministic": false,
+                                    "local": false,
+                                    "subscription": false,
+                                    "stateful": 0
+                                }
                             },
                             {
                                 "name": "eth_getWork",
@@ -1042,7 +1062,12 @@
                                 },
                                 "compute_units": 10,
                                 "enabled": false,
-                                "category": {}
+                                "category": {
+                                    "deterministic": false,
+                                    "local": false,
+                                    "subscription": false,
+                                    "stateful": 0
+                                }
                             },
                             {
                                 "name": "eth_hashrate",
@@ -1054,7 +1079,12 @@
                                 },
                                 "compute_units": 10,
                                 "enabled": false,
-                                "category": {}
+                                "category": {
+                                    "deterministic": false,
+                                    "local": false,
+                                    "subscription": false,
+                                    "stateful": 0
+                                }
                             },
                             {
                                 "name": "eth_mining",
@@ -1066,7 +1096,12 @@
                                 },
                                 "compute_units": 10,
                                 "enabled": false,
-                                "category": {}
+                                "category": {
+                                    "deterministic": false,
+                                    "local": false,
+                                    "subscription": false,
+                                    "stateful": 0
+                                }
                             }
                         ],
                         "headers": [],
