@@ -317,7 +317,7 @@
               },
               {
                 "name": "txpool_content",
-                "compute_units": 20,
+                "compute_units": 5000,
                 "enabled": true,
                 "category": {
                   "deterministic": false,
