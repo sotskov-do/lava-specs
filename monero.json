@@ -76,7 +76,7 @@
                 "enabled": true,
                 "category": {
                   "deterministic": false,
-                  "local": false,
+                  "local": true,
                   "subscription": false,
                   "stateful": 0
                 },
@@ -104,9 +104,9 @@
                 "name": "get_block_header_by_hash",
                 "block_parsing": {
                   "parser_arg": [
-                    "hash"
+                    "latest"
                   ],
-                  "parser_func": "PARSE_CANONICAL"
+                  "parser_func": "DEFAULT"
                 },
                 "compute_units": 20,
                 "enabled": true,
@@ -158,9 +158,9 @@
                 "name": "get_block",
                 "block_parsing": {
                   "parser_arg": [
-                    "height"
+                    "latest"
                   ],
-                  "parser_func": "PARSE_CANONICAL"
+                  "parser_func": "DEFAULT"
                 },
                 "compute_units": 20,
                 "enabled": true,
@@ -289,7 +289,7 @@
                   "parser_func": "DEFAULT"
                 },
                 "compute_units": 20,
-                "enabled": true,
+                "enabled": false,
                 "category": {
                   "deterministic": false,
                   "local": true,
@@ -436,390 +436,12 @@
             "extensions": [
               {
                 "name": "archive",
-                "cu_multiplier": 1.5,
+                "cu_multiplier": 5,
                 "rule": {
                   "block": 5500
                 }
               }
             ]
-          },
-          {
-            "enabled": true,
-            "collection_data": {
-              "api_interface": "jsonrpc",
-              "internal_path": "",
-              "type": "POST",
-              "add_on": ""
-            },
-            "apis": [
-              {
-                "name": "/get_height",
-                "block_parsing": {
-                  "parser_arg": [
-                    "latest"
-                  ],
-                  "parser_func": "DEFAULT"
-                },
-                "compute_units": 10,
-                "enabled": true,
-                "category": {
-                  "deterministic": false,
-                  "local": true,
-                  "subscription": false,
-                  "stateful": 0
-                },
-                "extra_compute_units": 0
-              },
-              {
-                "name": "/get_info",
-                "block_parsing": {
-                  "parser_arg": [
-                    "latest"
-                  ],
-                  "parser_func": "DEFAULT"
-                },
-                "compute_units": 10,
-                "enabled": true,
-                "category": {
-                  "deterministic": false,
-                  "local": true,
-                  "subscription": false,
-                  "stateful": 0
-                },
-                "extra_compute_units": 0
-              },
-              {
-                "name": "/get_transactions",
-                "block_parsing": {
-                  "parser_arg": [
-                    "latest"
-                  ],
-                  "parser_func": "DEFAULT"
-                },
-                "compute_units": 20,
-                "enabled": true,
-                "category": {
-                  "deterministic": true,
-                  "local": false,
-                  "subscription": false,
-                  "stateful": 0
-                },
-                "extra_compute_units": 0
-              },
-              {
-                "name": "/get_outs",
-                "block_parsing": {
-                  "parser_arg": [
-                    "latest"
-                  ],
-                  "parser_func": "DEFAULT"
-                },
-                "compute_units": 20,
-                "enabled": true,
-                "category": {
-                  "deterministic": true,
-                  "local": false,
-                  "subscription": false,
-                  "stateful": 0
-                },
-                "extra_compute_units": 0
-              },
-              {
-                "name": "/get_outs.bin",
-                "block_parsing": {
-                  "parser_arg": [
-                    "latest"
-                  ],
-                  "parser_func": "DEFAULT"
-                },
-                "compute_units": 20,
-                "enabled": true,
-                "category": {
-                  "deterministic": true,
-                  "local": false,
-                  "subscription": false,
-                  "stateful": 0
-                },
-                "extra_compute_units": 0
-              },
-              {
-                "name": "/get_o_indexes.bin",
-                "block_parsing": {
-                  "parser_arg": [
-                    "latest"
-                  ],
-                  "parser_func": "DEFAULT"
-                },
-                "compute_units": 20,
-                "enabled": true,
-                "category": {
-                  "deterministic": true,
-                  "local": false,
-                  "subscription": false,
-                  "stateful": 0
-                },
-                "extra_compute_units": 0
-              },
-              {
-                "name": "/is_key_image_spent",
-                "block_parsing": {
-                  "parser_arg": [
-                    "latest"
-                  ],
-                  "parser_func": "DEFAULT"
-                },
-                "compute_units": 20,
-                "enabled": true,
-                "category": {
-                  "deterministic": true,
-                  "local": false,
-                  "subscription": false,
-                  "stateful": 0
-                },
-                "extra_compute_units": 0
-              },
-              {
-                "name": "/get_transaction_pool",
-                "block_parsing": {
-                  "parser_arg": [
-                    "latest"
-                  ],
-                  "parser_func": "DEFAULT"
-                },
-                "compute_units": 20,
-                "enabled": true,
-                "category": {
-                  "deterministic": false,
-                  "local": true,
-                  "subscription": false,
-                  "stateful": 0
-                },
-                "extra_compute_units": 0
-              },
-              {
-                "name": "/get_transaction_pool_hashes",
-                "block_parsing": {
-                  "parser_arg": [
-                    "latest"
-                  ],
-                  "parser_func": "DEFAULT"
-                },
-                "compute_units": 20,
-                "enabled": true,
-                "category": {
-                  "deterministic": false,
-                  "local": true,
-                  "subscription": false,
-                  "stateful": 0
-                },
-                "extra_compute_units": 0
-              },
-              {
-                "name": "/get_transaction_pool_hashes.bin",
-                "block_parsing": {
-                  "parser_arg": [
-                    "latest"
-                  ],
-                  "parser_func": "DEFAULT"
-                },
-                "compute_units": 20,
-                "enabled": true,
-                "category": {
-                  "deterministic": false,
-                  "local": true,
-                  "subscription": false,
-                  "stateful": 0
-                },
-                "extra_compute_units": 0
-              },
-              {
-                "name": "/get_transaction_pool_stats",
-                "block_parsing": {
-                  "parser_arg": [
-                    "latest"
-                  ],
-                  "parser_func": "DEFAULT"
-                },
-                "compute_units": 20,
-                "enabled": true,
-                "category": {
-                  "deterministic": false,
-                  "local": true,
-                  "subscription": false,
-                  "stateful": 0
-                },
-                "extra_compute_units": 0
-              },
-              {
-                "name": "/get_alt_blocks_hashes",
-                "block_parsing": {
-                  "parser_arg": [
-                    "latest"
-                  ],
-                  "parser_func": "DEFAULT"
-                },
-                "compute_units": 10,
-                "enabled": true,
-                "category": {
-                  "deterministic": false,
-                  "local": true,
-                  "subscription": false,
-                  "stateful": 0
-                },
-                "extra_compute_units": 0
-              },
-              {
-                "name": "/get_blocks.bin",
-                "block_parsing": {
-                  "parser_arg": [
-                    "latest"
-                  ],
-                  "parser_func": "DEFAULT"
-                },
-                "compute_units": 60,
-                "enabled": true,
-                "category": {
-                  "deterministic": true,
-                  "local": false,
-                  "subscription": false,
-                  "stateful": 0
-                },
-                "extra_compute_units": 0
-              },
-              {
-                "name": "/get_blocks_by_height.bin",
-                "block_parsing": {
-                  "parser_arg": [
-                    "latest"
-                  ],
-                  "parser_func": "DEFAULT"
-                },
-                "compute_units": 60,
-                "enabled": true,
-                "category": {
-                  "deterministic": true,
-                  "local": false,
-                  "subscription": false,
-                  "stateful": 0
-                },
-                "extra_compute_units": 0
-              },
-              {
-                "name": "/get_hashes.bin",
-                "block_parsing": {
-                  "parser_arg": [
-                    "latest"
-                  ],
-                  "parser_func": "DEFAULT"
-                },
-                "compute_units": 20,
-                "enabled": true,
-                "category": {
-                  "deterministic": true,
-                  "local": false,
-                  "subscription": false,
-                  "stateful": 0
-                },
-                "extra_compute_units": 0
-              },
-              {
-                "name": "/get_output_distribution.bin",
-                "block_parsing": {
-                  "parser_arg": [
-                    "latest"
-                  ],
-                  "parser_func": "DEFAULT"
-                },
-                "compute_units": 20,
-                "enabled": true,
-                "category": {
-                  "deterministic": true,
-                  "local": false,
-                  "subscription": false,
-                  "stateful": 0
-                },
-                "extra_compute_units": 0
-              },
-              {
-                "name": "/get_net_stats",
-                "block_parsing": {
-                  "parser_arg": [
-                    "latest"
-                  ],
-                  "parser_func": "DEFAULT"
-                },
-                "compute_units": 10,
-                "enabled": true,
-                "category": {
-                  "deterministic": false,
-                  "local": true,
-                  "subscription": false,
-                  "stateful": 0
-                },
-                "extra_compute_units": 0
-              },
-              {
-                "name": "/get_public_nodes",
-                "block_parsing": {
-                  "parser_arg": [
-                    "latest"
-                  ],
-                  "parser_func": "DEFAULT"
-                },
-                "compute_units": 10,
-                "enabled": true,
-                "category": {
-                  "deterministic": false,
-                  "local": true,
-                  "subscription": false,
-                  "stateful": 0
-                },
-                "extra_compute_units": 0
-              },
-              {
-                "name": "/mining_status",
-                "block_parsing": {
-                  "parser_arg": [
-                    "latest"
-                  ],
-                  "parser_func": "DEFAULT"
-                },
-                "compute_units": 10,
-                "enabled": true,
-                "category": {
-                  "deterministic": false,
-                  "local": true,
-                  "subscription": false,
-                  "stateful": 0
-                },
-                "extra_compute_units": 0
-              },
-              {
-                "name": "/send_raw_transaction",
-                "block_parsing": {
-                  "parser_arg": [
-                    "latest"
-                  ],
-                  "parser_func": "DEFAULT"
-                },
-                "compute_units": 10,
-                "enabled": true,
-                "category": {
-                  "deterministic": false,
-                  "local": false,
-                  "subscription": false,
-                  "stateful": 1,
-                  "hanging_api": true
-                },
-                "timeout_ms": 30000,
-                "extra_compute_units": 0
-              }
-            ],
-            "headers": [],
-            "inheritance_apis": [],
-            "parse_directives": [],
-            "verifications": [],
-            "extensions": []
           }
         ]
       },
