@@ -9,7 +9,7 @@
         "enabled": true,
         "reliability_threshold": 268435455,
         "data_reliability_enabled": true,
-        "block_distance_for_finalized_data": 5,
+        "block_distance_for_finalized_data": 1,
         "blocks_in_finalization_proof": 1,
         "average_block_time": 12000,
         "allowed_block_lag_for_qos_sync": 1,
@@ -40,7 +40,7 @@
                 "compute_units": 10,
                 "enabled": true,
                 "category": {
-                  "deterministic": true,
+                  "deterministic": false,
                   "local": false,
                   "subscription": false,
                   "stateful": 0
@@ -123,9 +123,9 @@
                 "name": "author_removeExtrinsic",
                 "block_parsing": {
                   "parser_arg": [
-                    "0"
+                    ""
                   ],
-                  "parser_func": "PARSE_BY_ARG"
+                  "parser_func": "EMPTY"
                 },
                 "compute_units": 20,
                 "enabled": true,
@@ -159,9 +159,9 @@
                 "name": "author_submitAndWatchExtrinsic",
                 "block_parsing": {
                   "parser_arg": [
-                    "0"
+                    ""
                   ],
-                  "parser_func": "PARSE_BY_ARG"
+                  "parser_func": "EMPTY"
                 },
                 "compute_units": 1000,
                 "enabled": true,
@@ -177,9 +177,9 @@
                 "name": "author_submitExtrinsic",
                 "block_parsing": {
                   "parser_arg": [
-                    "0"
+                    ""
                   ],
-                  "parser_func": "PARSE_BY_ARG"
+                  "parser_func": "EMPTY"
                 },
                 "compute_units": 10,
                 "enabled": true,
@@ -897,7 +897,7 @@
                 "name": "delegateInfo_getDelegate",
                 "block_parsing": {
                   "parser_arg": [
-                    "0"
+                    "1"
                   ],
                   "parser_func": "PARSE_BY_ARG"
                 },
@@ -915,7 +915,7 @@
                 "name": "delegateInfo_getDelegated",
                 "block_parsing": {
                   "parser_arg": [
-                    "0"
+                    "1"
                   ],
                   "parser_func": "PARSE_BY_ARG"
                 },
@@ -951,7 +951,7 @@
                 "name": "neuronInfo_getNeuron",
                 "block_parsing": {
                   "parser_arg": [
-                    "0"
+                    "2"
                   ],
                   "parser_func": "PARSE_BY_ARG"
                 },
@@ -969,7 +969,7 @@
                 "name": "neuronInfo_getNeuronLite",
                 "block_parsing": {
                   "parser_arg": [
-                    "0"
+                    "2"
                   ],
                   "parser_func": "PARSE_BY_ARG"
                 },
@@ -987,7 +987,7 @@
                 "name": "neuronInfo_getNeurons",
                 "block_parsing": {
                   "parser_arg": [
-                    "0"
+                    "1"
                   ],
                   "parser_func": "PARSE_BY_ARG"
                 },
@@ -1005,7 +1005,7 @@
                 "name": "neuronInfo_getNeuronsLite",
                 "block_parsing": {
                   "parser_arg": [
-                    "0"
+                    "1"
                   ],
                   "parser_func": "PARSE_BY_ARG"
                 },
@@ -1599,7 +1599,7 @@
                 "name": "subnetInfo_getColdkeyAutoStakeHotkey",
                 "block_parsing": {
                   "parser_arg": [
-                    "0"
+                    "1"
                   ],
                   "parser_func": "PARSE_BY_ARG"
                 },
@@ -1617,7 +1617,7 @@
                 "name": "subnetInfo_getDynamicInfo",
                 "block_parsing": {
                   "parser_arg": [
-                    "0"
+                    "1"
                   ],
                   "parser_func": "PARSE_BY_ARG"
                 },
@@ -1653,7 +1653,7 @@
                 "name": "subnetInfo_getMechagraph",
                 "block_parsing": {
                   "parser_arg": [
-                    "0"
+                    "1"
                   ],
                   "parser_func": "PARSE_BY_ARG"
                 },
@@ -1671,7 +1671,7 @@
                 "name": "subnetInfo_getMetagraph",
                 "block_parsing": {
                   "parser_arg": [
-                    "0"
+                    "1"
                   ],
                   "parser_func": "PARSE_BY_ARG"
                 },
@@ -1689,7 +1689,7 @@
                 "name": "subnetInfo_getSelectiveMechagraph",
                 "block_parsing": {
                   "parser_arg": [
-                    "0"
+                    "2"
                   ],
                   "parser_func": "PARSE_BY_ARG"
                 },
@@ -1707,7 +1707,7 @@
                 "name": "subnetInfo_getSelectiveMetagraph",
                 "block_parsing": {
                   "parser_arg": [
-                    "0"
+                    "2"
                   ],
                   "parser_func": "PARSE_BY_ARG"
                 },
@@ -1725,7 +1725,7 @@
                 "name": "subnetInfo_getSubnetHyperparams",
                 "block_parsing": {
                   "parser_arg": [
-                    "0"
+                    "1"
                   ],
                   "parser_func": "PARSE_BY_ARG"
                 },
@@ -1743,7 +1743,7 @@
                 "name": "subnetInfo_getSubnetHyperparamsV2",
                 "block_parsing": {
                   "parser_arg": [
-                    "0"
+                    "1"
                   ],
                   "parser_func": "PARSE_BY_ARG"
                 },
@@ -1761,7 +1761,7 @@
                 "name": "subnetInfo_getSubnetInfo",
                 "block_parsing": {
                   "parser_arg": [
-                    "0"
+                    "1"
                   ],
                   "parser_func": "PARSE_BY_ARG"
                 },
@@ -1779,7 +1779,7 @@
                 "name": "subnetInfo_getSubnetInfo_v2",
                 "block_parsing": {
                   "parser_arg": [
-                    "0"
+                    "1"
                   ],
                   "parser_func": "PARSE_BY_ARG"
                 },
@@ -1797,7 +1797,7 @@
                 "name": "subnetInfo_getSubnetState",
                 "block_parsing": {
                   "parser_arg": [
-                    "0"
+                    "1"
                   ],
                   "parser_func": "PARSE_BY_ARG"
                 },
@@ -1887,7 +1887,7 @@
                 "name": "swap_currentAlphaPrice",
                 "block_parsing": {
                   "parser_arg": [
-                    "0"
+                    "1"
                   ],
                   "parser_func": "PARSE_BY_ARG"
                 },
@@ -1905,7 +1905,7 @@
                 "name": "swap_simSwapAlphaForTao",
                 "block_parsing": {
                   "parser_arg": [
-                    "0"
+                    "2"
                   ],
                   "parser_func": "PARSE_BY_ARG"
                 },
@@ -1923,7 +1923,7 @@
                 "name": "swap_simSwapTaoForAlpha",
                 "block_parsing": {
                   "parser_arg": [
-                    "0"
+                    "2"
                   ],
                   "parser_func": "PARSE_BY_ARG"
                 },
@@ -2031,9 +2031,9 @@
                 "name": "system_dryRun",
                 "block_parsing": {
                   "parser_arg": [
-                    "0"
+                    ""
                   ],
-                  "parser_func": "PARSE_BY_ARG"
+                  "parser_func": "EMPTY"
                 },
                 "compute_units": 20,
                 "enabled": true,
@@ -2337,9 +2337,9 @@
                 "name": "transaction_v1_broadcast",
                 "block_parsing": {
                   "parser_arg": [
-                    "0"
+                    ""
                   ],
-                  "parser_func": "PARSE_BY_ARG"
+                  "parser_func": "EMPTY"
                 },
                 "compute_units": 10,
                 "enabled": true,
@@ -2392,15 +2392,16 @@
             "inheritance_apis": [],
             "parse_directives": [
               {
-                "function_template": "{\"jsonrpc\":\"2.0\",\"method\":\"chain_getBlockHash\",\"params\":[0],\"id\":1}",
+                "function_template": "{\"jsonrpc\":\"2.0\",\"method\":\"state_getRuntimeVersion\",\"params\":[\"0x2f0555cc76fc2840a25a6ea3b9637146806f1f44b090c175ffde2a7e5ab36c03\"],\"id\":1}",
                 "function_tag": "GET_EARLIEST_BLOCK",
                 "result_parsing": {
                   "parser_arg": [
-                    "0"
+                    "0",
+                    "specVersion"
                   ],
                   "parser_func": "PARSE_CANONICAL"
                 },
-                "api_name": "chain_getBlockHash"
+                "api_name": "state_getRuntimeVersion"
               },
               {
                 "function_tag": "GET_BLOCK_BY_NUM",
@@ -2563,11 +2564,8 @@
                 },
                 "values": [
                   {
-                    "latest_distance": 7200
-                  },
-                  {
                     "extension": "archive",
-                    "expected_value": "1"
+                    "expected_value": "101"
                   }
                 ]
               }
@@ -2577,7 +2575,7 @@
                 "name": "archive",
                 "cu_multiplier": 5,
                 "rule": {
-                  "block": 7200
+                  "block": 127
                 }
               }
             ]
@@ -2909,7 +2907,7 @@
                 "compute_units": 60,
                 "enabled": true,
                 "category": {
-                  "deterministic": false,
+                  "deterministic": true,
                   "local": false,
                   "subscription": false,
                   "stateful": 0
@@ -3499,9 +3497,9 @@
                 "name": "debug_getBadBlocks",
                 "block_parsing": {
                   "parser_arg": [
-                    "0"
+                    ""
                   ],
-                  "parser_func": "PARSE_BY_ARG"
+                  "parser_func": "EMPTY"
                 },
                 "compute_units": 100,
                 "enabled": true,
@@ -3590,7 +3588,7 @@
             "inheritance_apis": [],
             "parse_directives": [
               {
-                "function_template": "{\"jsonrpc\":\"2.0\",\"method\":\"eth_getBlockByNumber\",\"params\":[\"earliest\",false],\"id\":1}",
+                "function_template": "{\"jsonrpc\":\"2.0\",\"method\":\"eth_getBlockByNumber\",\"params\":[\"0x426030\",false],\"id\":1}",
                 "function_tag": "GET_EARLIEST_BLOCK",
                 "result_parsing": {
                   "parser_arg": [
@@ -3661,15 +3659,22 @@
               {
                 "name": "pruning",
                 "parse_directive": {
-                  "function_tag": "GET_EARLIEST_BLOCK"
+                  "function_template": "{\"jsonrpc\":\"2.0\",\"method\":\"eth_getBlockByNumber\",\"params\":[\"0x426030\",false],\"id\":1}",
+                  "function_tag": "VERIFICATION",
+                  "result_parsing": {
+                    "parser_arg": [
+                      "0",
+                      "number"
+                    ],
+                    "parser_func": "PARSE_CANONICAL",
+                    "encoding": "hex"
+                  },
+                  "api_name": "eth_getBlockByNumber"
                 },
                 "values": [
                   {
-                    "latest_distance": 7200
-                  },
-                  {
                     "extension": "archive",
-                    "expected_value": "1"
+                    "expected_value": "0x426030"
                   }
                 ]
               }
@@ -3679,7 +3684,7 @@
                 "name": "archive",
                 "cu_multiplier": 5,
                 "rule": {
-                  "block": 7200
+                  "block": 127
                 }
               }
             ]
@@ -3692,7 +3697,7 @@
         "enabled": true,
         "reliability_threshold": 268435455,
         "data_reliability_enabled": true,
-        "block_distance_for_finalized_data": 5,
+        "block_distance_for_finalized_data": 1,
         "blocks_in_finalization_proof": 1,
         "average_block_time": 12000,
         "allowed_block_lag_for_qos_sync": 1,
@@ -3714,12 +3719,40 @@
               "add_on": ""
             },
             "apis": [],
+            "headers": [],
+            "inheritance_apis": [],
+            "parse_directives": [
+              {
+                "function_template": "{\"jsonrpc\":\"2.0\",\"method\":\"state_getRuntimeVersion\",\"params\":[\"0x8f9cf856bf558a14440e75569c9e58594757048d7b3a84b5d25f6bd978263105\"],\"id\":1}",
+                "function_tag": "GET_EARLIEST_BLOCK",
+                "result_parsing": {
+                  "parser_arg": [
+                    "0",
+                    "specVersion"
+                  ],
+                  "parser_func": "PARSE_CANONICAL"
+                },
+                "api_name": "state_getRuntimeVersion"
+              }
+            ],
             "verifications": [
               {
                 "name": "chain-id",
                 "values": [
                   {
                     "expected_value": "0x8f9cf856bf558a14440e75569c9e58594757048d7b3a84b5d25f6bd978263105"
+                  }
+                ]
+              },
+              {
+                "name": "pruning",
+                "parse_directive": {
+                  "function_tag": "GET_EARLIEST_BLOCK"
+                },
+                "values": [
+                  {
+                    "extension": "archive",
+                    "expected_value": "103"
                   }
                 ]
               }
