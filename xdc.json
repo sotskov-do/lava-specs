@@ -12,7 +12,7 @@
         ],
         "reliability_threshold": 268435455,
         "data_reliability_enabled": true,
-        "block_distance_for_finalized_data": 3,
+        "block_distance_for_finalized_data": 1,
         "blocks_in_finalization_proof": 1,
         "average_block_time": 2000,
         "allowed_block_lag_for_qos_sync": 5,
@@ -53,9 +53,9 @@
                 "name": "XDPoS_getSnapshotAtHash",
                 "block_parsing": {
                   "parser_arg": [
-                    "0"
+                    "latest"
                   ],
-                  "parser_func": "PARSE_BY_ARG"
+                  "parser_func": "DEFAULT"
                 },
                 "compute_units": 20,
                 "enabled": true,
@@ -89,9 +89,9 @@
                 "name": "XDPoS_getSignersAtHash",
                 "block_parsing": {
                   "parser_arg": [
-                    "0"
+                    "latest"
                   ],
-                  "parser_func": "PARSE_BY_ARG"
+                  "parser_func": "DEFAULT"
                 },
                 "compute_units": 20,
                 "enabled": true,
@@ -143,9 +143,9 @@
                 "name": "XDPoS_getV2BlockByHash",
                 "block_parsing": {
                   "parser_arg": [
-                    "0"
+                    "latest"
                   ],
-                  "parser_func": "PARSE_BY_ARG"
+                  "parser_func": "DEFAULT"
                 },
                 "compute_units": 20,
                 "enabled": true,
@@ -179,7 +179,7 @@
                 "name": "XDPoS_getRewardByAccount",
                 "block_parsing": {
                   "parser_arg": [
-                    "0"
+                    "1"
                   ],
                   "parser_func": "PARSE_BY_ARG"
                 },
@@ -276,7 +276,7 @@
                 "compute_units": 10,
                 "enabled": true,
                 "category": {
-                  "deterministic": true,
+                  "deterministic": false,
                   "local": false,
                   "subscription": false,
                   "stateful": 0
@@ -395,9 +395,9 @@
                 "name": "eth_getRewardByHash",
                 "block_parsing": {
                   "parser_arg": [
-                    "0"
+                    "latest"
                   ],
-                  "parser_func": "PARSE_BY_ARG"
+                  "parser_func": "DEFAULT"
                 },
                 "compute_units": 20,
                 "enabled": true,
@@ -431,7 +431,7 @@
                 "name": "eth_getStorageValues",
                 "block_parsing": {
                   "parser_arg": [
-                    "0"
+                    "2"
                   ],
                   "parser_func": "PARSE_BY_ARG"
                 },
@@ -557,10 +557,9 @@
                 "name": "eth_simulateV1",
                 "block_parsing": {
                   "parser_arg": [
-                    "0",
-                    "blockStateCalls"
+                    "latest"
                   ],
-                  "parser_func": "PARSE_CANONICAL"
+                  "parser_func": "DEFAULT"
                 },
                 "compute_units": 40,
                 "enabled": true,
@@ -616,7 +615,7 @@
                   ],
                   "parser_func": "DEFAULT"
                 },
-                "compute_units": 100,
+                "compute_units": 5000,
                 "enabled": true,
                 "category": {
                   "deterministic": false,
@@ -702,9 +701,9 @@
                 "name": "eth_getBlockSignersByHash",
                 "block_parsing": {
                   "parser_arg": [
-                    "0"
+                    "latest"
                   ],
-                  "parser_func": "PARSE_BY_ARG"
+                  "parser_func": "DEFAULT"
                 },
                 "compute_units": 20,
                 "enabled": true,
@@ -738,9 +737,9 @@
                 "name": "eth_getBlockFinalityByHash",
                 "block_parsing": {
                   "parser_arg": [
-                    "0"
+                    "latest"
                   ],
-                  "parser_func": "PARSE_BY_ARG"
+                  "parser_func": "DEFAULT"
                 },
                 "compute_units": 20,
                 "enabled": true,
@@ -1448,16 +1447,7 @@
             "headers": [],
             "inheritance_apis": [],
             "parse_directives": [],
-            "verifications": [
-              {
-                "name": "chain-id",
-                "values": [
-                  {
-                    "expected_value": "0x32"
-                  }
-                ]
-              }
-            ],
+            "verifications": [],
             "extensions": []
           }
         ]
@@ -1471,7 +1461,7 @@
         ],
         "reliability_threshold": 268435455,
         "data_reliability_enabled": true,
-        "block_distance_for_finalized_data": 3,
+        "block_distance_for_finalized_data": 1,
         "blocks_in_finalization_proof": 1,
         "average_block_time": 2000,
         "allowed_block_lag_for_qos_sync": 5,
