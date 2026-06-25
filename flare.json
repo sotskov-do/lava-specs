@@ -11,8 +11,8 @@
                 "data_reliability_enabled": true,
                 "block_distance_for_finalized_data": 1,
                 "blocks_in_finalization_proof": 1,
-                "average_block_time": 1800,
-                "allowed_block_lag_for_qos_sync": 6,
+                "average_block_time": 1200,
+                "allowed_block_lag_for_qos_sync": 9,
                 "imports": [
                     "ETH1"
                 ],
@@ -392,14 +392,14 @@
                             {
                                 "name": "eth_newAcceptedTransactions",
                                 "block_parsing": {"parser_arg": ["latest"], "parser_func": "DEFAULT"},
-                                "compute_units": 10,
+                                "compute_units": 1000,
                                 "enabled": true,
                                 "category": {"deterministic": false, "local": false, "subscription": true, "stateful": 0},
                                 "extra_compute_units": 0
                             },
                             {
                                 "name": "txpool_status",
-                                "block_parsing": {"parser_arg": ["latest"], "parser_func": "DEFAULT"},
+                                "block_parsing": {"parser_arg": [""], "parser_func": "EMPTY"},
                                 "compute_units": 10,
                                 "enabled": true,
                                 "category": {"deterministic": false, "local": false, "subscription": false, "stateful": 0},
@@ -407,7 +407,7 @@
                             },
                             {
                                 "name": "txpool_content",
-                                "block_parsing": {"parser_arg": ["latest"], "parser_func": "DEFAULT"},
+                                "block_parsing": {"parser_arg": [""], "parser_func": "EMPTY"},
                                 "compute_units": 5000,
                                 "enabled": true,
                                 "category": {"deterministic": false, "local": false, "subscription": false, "stateful": 0},
@@ -415,7 +415,7 @@
                             },
                             {
                                 "name": "txpool_contentFrom",
-                                "block_parsing": {"parser_arg": ["latest"], "parser_func": "DEFAULT"},
+                                "block_parsing": {"parser_arg": [""], "parser_func": "EMPTY"},
                                 "compute_units": 10,
                                 "enabled": true,
                                 "category": {"deterministic": false, "local": false, "subscription": false, "stateful": 0},
@@ -423,12 +423,18 @@
                             },
                             {
                                 "name": "txpool_inspect",
-                                "block_parsing": {"parser_arg": ["latest"], "parser_func": "DEFAULT"},
+                                "block_parsing": {"parser_arg": [""], "parser_func": "EMPTY"},
                                 "compute_units": 10,
                                 "enabled": true,
                                 "category": {"deterministic": false, "local": false, "subscription": false, "stateful": 0},
                                 "extra_compute_units": 0
-                            }
+                            },
+                            {"name": "eth_mining",          "enabled": false, "compute_units": 1, "block_parsing": {"parser_arg": [""], "parser_func": "EMPTY"}, "category": {"deterministic": false, "local": false, "subscription": false, "stateful": 0}, "extra_compute_units": 0},
+                            {"name": "eth_hashrate",        "enabled": false, "compute_units": 1, "block_parsing": {"parser_arg": [""], "parser_func": "EMPTY"}, "category": {"deterministic": false, "local": false, "subscription": false, "stateful": 0}, "extra_compute_units": 0},
+                            {"name": "eth_getWork",         "enabled": false, "compute_units": 1, "block_parsing": {"parser_arg": [""], "parser_func": "EMPTY"}, "category": {"deterministic": false, "local": false, "subscription": false, "stateful": 0}, "extra_compute_units": 0},
+                            {"name": "eth_compileLLL",      "enabled": false, "compute_units": 1, "block_parsing": {"parser_arg": [""], "parser_func": "EMPTY"}, "category": {"deterministic": false, "local": false, "subscription": false, "stateful": 0}, "extra_compute_units": 0},
+                            {"name": "eth_getCompilers",    "enabled": false, "compute_units": 1, "block_parsing": {"parser_arg": [""], "parser_func": "EMPTY"}, "category": {"deterministic": false, "local": false, "subscription": false, "stateful": 0}, "extra_compute_units": 0},
+                            {"name": "eth_protocolVersion", "enabled": false, "compute_units": 1, "block_parsing": {"parser_arg": [""], "parser_func": "EMPTY"}, "category": {"deterministic": false, "local": false, "subscription": false, "stateful": 0}, "extra_compute_units": 0}
                         ],
                         "headers": [],
                         "inheritance_apis": [],
@@ -528,8 +534,8 @@
                 "data_reliability_enabled": true,
                 "block_distance_for_finalized_data": 1,
                 "blocks_in_finalization_proof": 1,
-                "average_block_time": 1800,
-                "allowed_block_lag_for_qos_sync": 6,
+                "average_block_time": 2800,
+                "allowed_block_lag_for_qos_sync": 4,
                 "shares": 1,
                 "min_stake_provider": {
                     "denom": "ulava",
