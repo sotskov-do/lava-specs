@@ -40,8 +40,8 @@
                 "compute_units": 10,
                 "enabled": true,
                 "category": {
-                  "deterministic": true,
-                  "local": false,
+                  "deterministic": false,
+                  "local": true,
                   "subscription": false,
                   "stateful": 0
                 },
@@ -367,7 +367,7 @@
                   "deterministic": false,
                   "local": false,
                   "subscription": true,
-                  "stateful": 0
+                  "stateful": 1
                 },
                 "extra_compute_units": 0
               },
@@ -1194,8 +1194,8 @@
                 "compute_units": 10,
                 "enabled": true,
                 "category": {
-                  "deterministic": true,
-                  "local": false,
+                  "deterministic": false,
+                  "local": true,
                   "subscription": false,
                   "stateful": 0
                 },
@@ -1457,9 +1457,9 @@
                 "name": "state_callAt",
                 "block_parsing": {
                   "parser_arg": [
-                    "latest"
+                    "2"
                   ],
-                  "parser_func": "DEFAULT"
+                  "parser_func": "PARSE_BY_ARG"
                 },
                 "compute_units": 20,
                 "enabled": true,
@@ -1551,7 +1551,7 @@
                   ],
                   "parser_func": "DEFAULT"
                 },
-                "compute_units": 20,
+                "compute_units": 100,
                 "enabled": true,
                 "category": {
                   "deterministic": true,
@@ -1559,7 +1559,8 @@
                   "subscription": false,
                   "stateful": 0
                 },
-                "extra_compute_units": 0
+                "extra_compute_units": 0,
+                "timeout_ms": 30000
               },
               {
                 "name": "state_getPairs",
@@ -1889,11 +1890,11 @@
                 "name": "sync_state_genSyncSpec",
                 "block_parsing": {
                   "parser_arg": [
-                    "0"
+                    ""
                   ],
-                  "parser_func": "PARSE_BY_ARG"
+                  "parser_func": "EMPTY"
                 },
-                "compute_units": 20,
+                "compute_units": 60,
                 "enabled": true,
                 "category": {
                   "deterministic": true,
@@ -1901,7 +1902,8 @@
                   "subscription": false,
                   "stateful": 0
                 },
-                "extra_compute_units": 0
+                "extra_compute_units": 0,
+                "timeout_ms": 30000
               },
               {
                 "name": "system_accountNextIndex",
@@ -1914,7 +1916,7 @@
                 "compute_units": 10,
                 "enabled": true,
                 "category": {
-                  "deterministic": true,
+                  "deterministic": false,
                   "local": false,
                   "subscription": false,
                   "stateful": 0
@@ -2277,7 +2279,7 @@
                   "deterministic": false,
                   "local": false,
                   "subscription": true,
-                  "stateful": 0
+                  "stateful": 1
                 },
                 "extra_compute_units": 0
               },
@@ -2360,15 +2362,17 @@
             "inheritance_apis": [],
             "parse_directives": [
               {
-                "function_template": "{\"jsonrpc\":\"2.0\",\"method\":\"chain_getBlockHash\",\"params\":[0],\"id\":1}",
+                "function_template": "{\"jsonrpc\":\"2.0\",\"method\":\"chain_getHeader\",\"params\":[\"0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3\"],\"id\":1}",
                 "function_tag": "GET_EARLIEST_BLOCK",
                 "result_parsing": {
                   "parser_arg": [
-                    "0"
+                    "0",
+                    "number"
                   ],
-                  "parser_func": "PARSE_CANONICAL"
+                  "parser_func": "PARSE_CANONICAL",
+                  "encoding": "hex"
                 },
-                "api_name": "chain_getBlockHash"
+                "api_name": "chain_getHeader"
               },
               {
                 "function_tag": "GET_BLOCK_BY_NUM",
@@ -2377,7 +2381,7 @@
                   "parser_arg": [
                     "0"
                   ],
-                  "parser_func": "PARSE_CANONICAL"
+                  "parser_func": "PARSE_BY_ARG"
                 },
                 "api_name": "chain_getBlockHash"
               },
@@ -2553,7 +2557,7 @@
                   },
                   {
                     "extension": "archive",
-                    "expected_value": "1"
+                    "expected_value": "0"
                   }
                 ]
               }
@@ -3846,6 +3850,23 @@
               "add_on": ""
             },
             "apis": [],
+            "headers": [],
+            "inheritance_apis": [],
+            "parse_directives": [
+              {
+                "function_template": "{\"jsonrpc\":\"2.0\",\"method\":\"chain_getHeader\",\"params\":[\"0xe143f23803ac50e8f6f8e62695d1ce9e4e1d68aa36c1cd2cfd15340213f3423e\"],\"id\":1}",
+                "function_tag": "GET_EARLIEST_BLOCK",
+                "result_parsing": {
+                  "parser_arg": [
+                    "0",
+                    "number"
+                  ],
+                  "parser_func": "PARSE_CANONICAL",
+                  "encoding": "hex"
+                },
+                "api_name": "chain_getHeader"
+              }
+            ],
             "verifications": [
               {
                 "name": "chain-id",
@@ -3855,7 +3876,8 @@
                   }
                 ]
               }
-            ]
+            ],
+            "extensions": []
           },
           {
             "enabled": true,
