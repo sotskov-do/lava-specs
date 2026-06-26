@@ -42,7 +42,7 @@
                                 "compute_units": 10,
                                 "enabled": true,
                                 "category": {
-                                    "deterministic": false,
+                                    "deterministic": true,
                                     "local": false,
                                     "subscription": false,
                                     "stateful": 0
@@ -75,7 +75,7 @@
                                     ],
                                     "parser_func": "DEFAULT"
                                 },
-                                "compute_units": 10,
+                                "compute_units": 20,
                                 "enabled": true,
                                 "category": {
                                     "deterministic": false,
@@ -89,9 +89,9 @@
                                 "name": "eth_getHeaderByHash",
                                 "block_parsing": {
                                     "parser_arg": [
-                                        "0"
+                                        "latest"
                                     ],
-                                    "parser_func": "PARSE_BY_ARG"
+                                    "parser_func": "DEFAULT"
                                 },
                                 "compute_units": 20,
                                 "enabled": true,
@@ -125,9 +125,9 @@
                                 "name": "eth_getRawTransactionByBlockHashAndIndex",
                                 "block_parsing": {
                                     "parser_arg": [
-                                        "0"
+                                        "latest"
                                     ],
-                                    "parser_func": "PARSE_BY_ARG"
+                                    "parser_func": "DEFAULT"
                                 },
                                 "compute_units": 20,
                                 "enabled": true,
@@ -219,7 +219,7 @@
                                     ],
                                     "parser_func": "DEFAULT"
                                 },
-                                "compute_units": 10,
+                                "compute_units": 100,
                                 "timeout_ms": 10000,
                                 "enabled": true,
                                 "category": {
@@ -239,7 +239,7 @@
                                     ],
                                     "parser_func": "PARSE_BY_ARG"
                                 },
-                                "compute_units": 40,
+                                "compute_units": 100,
                                 "enabled": true,
                                 "category": {
                                     "deterministic": true,
@@ -257,11 +257,11 @@
                                     ],
                                     "parser_func": "DEFAULT"
                                 },
-                                "compute_units": 20,
+                                "compute_units": 5000,
                                 "enabled": true,
                                 "category": {
                                     "deterministic": false,
-                                    "local": true,
+                                    "local": false,
                                     "subscription": false,
                                     "stateful": 0
                                 },
@@ -279,7 +279,7 @@
                                 "enabled": true,
                                 "category": {
                                     "deterministic": false,
-                                    "local": true,
+                                    "local": false,
                                     "subscription": false,
                                     "stateful": 0
                                 },
@@ -297,7 +297,7 @@
                                 "enabled": true,
                                 "category": {
                                     "deterministic": false,
-                                    "local": true,
+                                    "local": false,
                                     "subscription": false,
                                     "stateful": 0
                                 },
@@ -315,7 +315,7 @@
                                 "enabled": true,
                                 "category": {
                                     "deterministic": false,
-                                    "local": true,
+                                    "local": false,
                                     "subscription": false,
                                     "stateful": 0
                                 },
