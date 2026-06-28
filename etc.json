@@ -287,9 +287,9 @@
                                 "name": "eth_resend",
                                 "block_parsing": {
                                     "parser_arg": [
-                                        "latest"
+                                        ""
                                     ],
-                                    "parser_func": "DEFAULT"
+                                    "parser_func": "EMPTY"
                                 },
                                 "compute_units": 10,
                                 "enabled": true,
@@ -1248,7 +1248,7 @@
                                 "enabled": true,
                                 "category": {
                                     "deterministic": false,
-                                    "local": false,
+                                    "local": true,
                                     "subscription": true,
                                     "stateful": 0
                                 },
@@ -1266,7 +1266,7 @@
                                 "enabled": true,
                                 "category": {
                                     "deterministic": false,
-                                    "local": false,
+                                    "local": true,
                                     "subscription": true,
                                     "stateful": 0
                                 },
@@ -1276,14 +1276,14 @@
                                 "name": "debug_accountRange",
                                 "block_parsing": {
                                     "parser_arg": [
-                                        ""
+                                        "0"
                                     ],
-                                    "parser_func": "EMPTY"
+                                    "parser_func": "PARSE_BY_ARG"
                                 },
                                 "compute_units": 10,
                                 "enabled": true,
                                 "category": {
-                                    "deterministic": false,
+                                    "deterministic": true,
                                     "local": true,
                                     "subscription": false,
                                     "stateful": 0
@@ -1492,9 +1492,9 @@
                                 "name": "debug_getAccessibleState",
                                 "block_parsing": {
                                     "parser_arg": [
-                                        ""
+                                        "0"
                                     ],
-                                    "parser_func": "EMPTY"
+                                    "parser_func": "PARSE_BY_ARG"
                                 },
                                 "compute_units": 10,
                                 "enabled": true,
@@ -1564,14 +1564,14 @@
                                 "name": "debug_intermediateRoots",
                                 "block_parsing": {
                                     "parser_arg": [
-                                        ""
+                                        "0"
                                     ],
-                                    "parser_func": "EMPTY"
+                                    "parser_func": "PARSE_BY_ARG"
                                 },
                                 "compute_units": 10,
                                 "enabled": true,
                                 "category": {
-                                    "deterministic": false,
+                                    "deterministic": true,
                                     "local": true,
                                     "subscription": false,
                                     "stateful": 0
@@ -1654,15 +1654,15 @@
                                 "name": "debug_seedHash",
                                 "block_parsing": {
                                     "parser_arg": [
-                                        ""
+                                        "0"
                                     ],
-                                    "parser_func": "EMPTY"
+                                    "parser_func": "PARSE_BY_ARG"
                                 },
                                 "compute_units": 10,
                                 "enabled": true,
                                 "category": {
-                                    "deterministic": false,
-                                    "local": true,
+                                    "deterministic": true,
+                                    "local": false,
                                     "subscription": false,
                                     "stateful": 0
                                 },
@@ -1870,9 +1870,9 @@
                                 "name": "debug_traceBadBlock",
                                 "block_parsing": {
                                     "parser_arg": [
-                                        "latest"
+                                        "0"
                                     ],
-                                    "parser_func": "DEFAULT"
+                                    "parser_func": "PARSE_BY_ARG"
                                 },
                                 "compute_units": 100,
                                 "enabled": true,
@@ -1924,9 +1924,9 @@
                                 "name": "debug_traceChain",
                                 "block_parsing": {
                                     "parser_arg": [
-                                        "latest"
+                                        "0"
                                     ],
-                                    "parser_func": "DEFAULT"
+                                    "parser_func": "PARSE_BY_ARG"
                                 },
                                 "compute_units": 200,
                                 "enabled": true,
@@ -2052,9 +2052,27 @@
                                     "api_name": "debug_getRawHeader"
                                 },
                                 "values": [ { "expected_value": "*" } ]
+                            },
+                            {
+                                "name": "pruning",
+                                "parse_directive": {
+                                    "function_tag": "GET_EARLIEST_BLOCK"
+                                },
+                                "values": [
+                                    { "latest_distance": 6646 },
+                                    { "extension": "archive", "expected_value": "0x0" }
+                                ]
                             }
                         ],
-                        "extensions": []
+                        "extensions": [
+                            {
+                                "name": "archive",
+                                "cu_multiplier": 5,
+                                "rule": {
+                                    "block": 6646
+                                }
+                            }
+                        ]
                     },
                     {
                         "enabled": true,
@@ -2069,9 +2087,9 @@
                                 "name": "trace_callMany",
                                 "block_parsing": {
                                     "parser_arg": [
-                                        "latest"
+                                        "1"
                                     ],
-                                    "parser_func": "DEFAULT"
+                                    "parser_func": "PARSE_BY_ARG"
                                 },
                                 "compute_units": 200,
                                 "enabled": true,
@@ -2095,7 +2113,7 @@
                                 "enabled": true,
                                 "category": {
                                     "deterministic": false,
-                                    "local": false,
+                                    "local": true,
                                     "subscription": true,
                                     "stateful": 0
                                 },
@@ -2113,7 +2131,7 @@
                                 "enabled": true,
                                 "category": {
                                     "deterministic": false,
-                                    "local": false,
+                                    "local": true,
                                     "subscription": true,
                                     "stateful": 0
                                 },
@@ -2143,9 +2161,27 @@
                                     "api_name": "trace_block"
                                 },
                                 "values": [ { "expected_value": "*" } ]
+                            },
+                            {
+                                "name": "pruning",
+                                "parse_directive": {
+                                    "function_tag": "GET_EARLIEST_BLOCK"
+                                },
+                                "values": [
+                                    { "latest_distance": 6646 },
+                                    { "extension": "archive", "expected_value": "0x0" }
+                                ]
                             }
                         ],
-                        "extensions": []
+                        "extensions": [
+                            {
+                                "name": "archive",
+                                "cu_multiplier": 5,
+                                "rule": {
+                                    "block": 6646
+                                }
+                            }
+                        ]
                     },
                     {
                         "enabled": true,
@@ -2164,7 +2200,7 @@
                                     ],
                                     "parser_func": "DEFAULT"
                                 },
-                                "compute_units": 20,
+                                "compute_units": 5000,
                                 "enabled": true,
                                 "category": {
                                     "deterministic": false,
@@ -2182,7 +2218,7 @@
                                     ],
                                     "parser_func": "DEFAULT"
                                 },
-                                "compute_units": 20,
+                                "compute_units": 1000,
                                 "enabled": true,
                                 "category": {
                                     "deterministic": false,
@@ -2200,7 +2236,7 @@
                                     ],
                                     "parser_func": "DEFAULT"
                                 },
-                                "compute_units": 20,
+                                "compute_units": 1000,
                                 "enabled": true,
                                 "category": {
                                     "deterministic": false,
